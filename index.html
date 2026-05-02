@@ -47,7 +47,7 @@
 
 <script>
 const N = {
-  start:{type:'q',text:"What is the customer's ID status?",hint:"Check the system before starting",opts:[{l:'Not ID',n:'not_id_details'},{l:'Partial',n:'load_profile'},{l:'Full ID / Full Mobile',n:'load_profile'},{l:'Yellow Suspended',n:'load_profile'},{l:'Red Suspended',n:'red_caf'}]},
+  start:{type:'q',text:"What is the customer's ID status?",hint:"Check the system before starting",opts:[{l:'Not ID',n:'not_id_details'},{l:'Partial',n:'load_profile'},{l:'Full ID / Full Mobile',n:'load_profile'},{l:'Yellow Suspended',n:'load_profile'},{l:'Red Suspended',n:'red_caf'},{l:'Revoked',n:'o_revoked'}]},
   not_id_details:{type:'q',text:"Do they have a customer ID, credit card, or account number?",opts:[{l:'Yes',n:'load_profile'},{l:'No',n:'not_id_namedob'}]},
   not_id_namedob:{type:'q',text:"Does their full name and DOB match a profile?",opts:[{l:'Yes',n:'load_profile'},{l:'No',n:'not_id_sol'}]},
   not_id_sol:{type:'q',text:"Can you find a matching profile on SOL using their phone name / DOB?",opts:[{l:'Yes',n:'load_profile'},{l:'No',n:'o_refer'}]},
