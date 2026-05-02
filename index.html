@@ -11,7 +11,13 @@
 </head>
 <body>
 
-<p class="page-label">Banking Call Centre</p>
+<div class="page-header">
+  <div class="logo-mark"><span>F</span></div>
+  <div>
+    <div class="page-org">Foundever</div>
+    <div class="page-sub">Call Centre Agent Guide</div>
+  </div>
+</div>
 
 <main class="app" role="main">
   <h1 class="sr-only">Call flow guide — step-by-step decision helper for call centre agents</h1>
@@ -49,7 +55,7 @@ const N = {
   check_flags:{type:'q',text:"Check headline info — are there any flags on the account?",hint:"Select the flag present. If none, select 'No flags'.",opts:[{l:'KYC Required',n:'o_kyc'},{l:'Extra Care',n:'flag_extra'},{l:'Revoked',n:'o_revoked'},{l:'Protected',n:'flag_protected'},{l:'"Community" in address',n:'check_caf'},{l:'No flags',n:'check_caf'}]},
   flag_extra:{type:'info',sev:'warn',text:"Extra Care — check what they need and speak patiently. Call Extra Care if they are about to fail ID",hint:"Continue to CAF notes after noting this",n:'check_caf'},
   flag_protected:{type:'info',sev:'info',text:"Protected — you may be able to do fund transfers for them",n:'check_caf'},
-  check_caf:{type:'q',text:"Check CAF Notes — were they previously handled by the Indigenous team?",opts:[{l:'Yes',n:'o_indigenous'},{l:'No',n:'caf_keyword'}]},
+  check_caf:{type:'q',text:"Check CAF Notes — were they previously handled by the Indigenous team?",opts:[{l:'Yes',n:'o_indigenous'},{l:'No',n:'caf_keyword'},{l:'No but "Community" is present in their address',n:'o_indigenous'}]},
   caf_keyword:{type:'q',text:"Is there a keyword in CAF Notes?",opts:[{l:'Yes',n:'keyword_type'},{l:'No',n:'caf_fraud'}]},
   keyword_type:{type:'q',text:"What type of keyword is it?",opts:[{l:'Must Quote Keyword',n:'keyword_read'},{l:'Special Keyword',n:'keyword_read'}]},
   keyword_read:{type:'action',text:"Read the keyword disclosure and ask the customer the keyword",n:'keyword_correct'},
@@ -80,68 +86,67 @@ const N = {
   o_digi_fraud:{type:'out',sev:'danger',text:"PTT to Digi Fraud"},
 };
 
-const sevMap = {
-  danger: { tag:'Escalate', tagColor:'var(--color-text-danger)', border:'var(--color-border-danger)', bg:'var(--color-background-danger)' },
-  warn:   { tag:'Caution',  tagColor:'var(--color-text-warning)', border:'var(--color-border-warning)', bg:'var(--color-background-warning)' },
-  success:{ tag:'Outcome',  tagColor:'var(--color-text-success)', border:'var(--color-border-success)', bg:'var(--color-background-success)' },
-  info:   { tag:'Transfer', tagColor:'var(--color-text-info)',    border:'var(--color-border-info)',    bg:'var(--color-background-info)' },
+
+const SEV = {
+  danger:  {tag:'Escalate', color:'var(--danger-text)',  border:'var(--danger-bdr)',  bg:'var(--danger-bg)'},
+  warn:    {tag:'Caution',  color:'var(--warning-text)', border:'var(--warning-bdr)', bg:'var(--warning-bg)'},
+  success: {tag:'Outcome',  color:'var(--success-text)', border:'var(--success-bdr)', bg:'var(--success-bg)'},
+  info:    {tag:'Transfer', color:'var(--info-text)',     border:'var(--info-bdr)',    bg:'var(--info-bg)'},
 };
 
 let hist = [], cur = 'start';
 
 function render() {
   const node = N[cur];
-  const card   = document.getElementById('card');
-  const trail  = document.getElementById('trail');
-  const opts   = document.getElementById('options');
 
   document.getElementById('step-num').textContent = 'Step ' + (hist.length + 1);
   document.getElementById('back-btn').style.display = hist.length ? 'inline-flex' : 'none';
 
-  /* Trail */
+  const trail = document.getElementById('trail');
   trail.innerHTML = '';
   hist.slice(-5).forEach((h, i, arr) => {
     const p = document.createElement('span');
-    p.className = 'trail-pill';
-    p.textContent = h.l;
+    p.className = 'trail-pill'; p.textContent = h.l;
     trail.appendChild(p);
     if (i < arr.length - 1) {
       const a = document.createElement('span');
-      a.className = 'trail-arrow';
-      a.textContent = '›';
+      a.className = 'trail-arrow'; a.textContent = '›';
       trail.appendChild(a);
     }
   });
 
-  /* Card appearance */
-  let border = 'var(--color-border-tertiary)', bg = 'var(--color-background-primary)';
-  let tagText = '', tagColor = 'var(--color-text-tertiary)';
+  const card = document.getElementById('card');
+  let border = 'var(--border-subtle)', bg = 'var(--surface-0)';
+  let tagText = '', tagColor = 'var(--text-tertiary)';
 
   if (node.type === 'action') {
-    tagText = 'Action needed'; tagColor = 'var(--color-text-info)';
-    border = 'var(--color-border-info)';
+    tagText = 'Action needed'; tagColor = 'var(--brand)';
+    border = 'var(--brand-mid)'; bg = 'var(--brand-light)';
+  } else if (node.type === 'q') {
+    tagText = 'Get Started';
   } else if (node.type === 'info' || node.type === 'out') {
-    const s = sevMap[node.sev] || sevMap.info;
-    tagText = s.tag; tagColor = s.tagColor;
-    border = s.border; bg = s.bg;
+    const s = SEV[node.sev] || SEV.info;
+    tagText = node.type === 'out' ? s.tag : 'Note';
+    tagColor = s.color; border = s.border; bg = s.bg;
   }
 
-  card.style.background   = bg;
-  card.style.borderColor  = border;
+  card.style.background  = bg;
+  card.style.borderColor = border;
 
   const ctag = document.getElementById('card-tag');
   ctag.textContent = tagText; ctag.style.color = tagColor;
   document.getElementById('card-text').textContent = node.text;
 
   const ch = document.getElementById('card-hint');
-  if (node.hint) { ch.textContent = node.hint; ch.style.display = 'block'; }
-  else { ch.style.display = 'none'; }
+  ch.textContent = node.hint || '';
+  ch.style.display = node.hint ? 'block' : 'none';
 
   const cn = document.getElementById('card-next');
   cn.style.display = (node.type === 'action' || node.type === 'info') && node.n ? 'inline-flex' : 'none';
 
-  /* Options */
+  const opts = document.getElementById('options');
   opts.innerHTML = '';
+
   if (node.type === 'q') {
     node.opts.forEach(opt => {
       const b = document.createElement('button');
@@ -151,9 +156,11 @@ function render() {
       opts.appendChild(b);
     });
   }
+
   if (node.type === 'out') {
     const rb = document.createElement('button');
-    rb.className = 'restart-btn';
+    rb.className = 'btn-full btn-primary';
+    rb.style.marginTop = '6px';
     rb.textContent = 'Start new call →';
     rb.onclick = restart;
     opts.appendChild(rb);
