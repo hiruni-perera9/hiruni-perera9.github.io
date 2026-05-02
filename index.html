@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Call Flow Guide</title>
+<title>Call Flow Guide for Trainees</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap" rel="stylesheet">
@@ -11,7 +11,7 @@
 </head>
 <body>
 
-<p class="page-label">Bank Call Centre</p>
+<p class="page-label">Banking Call Centre</p>
 
 <main class="app" role="main">
   <h1 class="sr-only">Call flow guide — step-by-step decision helper for call centre agents</h1>
@@ -43,8 +43,8 @@
 const N = {
   start:{type:'q',text:"What is the customer's ID status?",hint:"Check the system before starting",opts:[{l:'Not ID',n:'not_id_details'},{l:'Partial',n:'load_profile'},{l:'Full ID / Full Mobile',n:'load_profile'},{l:'Yellow Suspended',n:'load_profile'},{l:'Red Suspended',n:'red_caf'}]},
   not_id_details:{type:'q',text:"Do they have a customer ID, credit card, or account number?",opts:[{l:'Yes',n:'load_profile'},{l:'No',n:'not_id_namedob'}]},
-  not_id_namedob:{type:'q',text:"Does their full name and DOB match a profile?",opts:[{l:'Yes',n:'load_profile'},{l:'No',n:'not_id_sils'}]},
-  not_id_sils:{type:'q',text:"Can you find a matching profile on SILs using their phone name / DOB?",opts:[{l:'Yes',n:'load_profile'},{l:'No',n:'o_refer'}]},
+  not_id_namedob:{type:'q',text:"Does their full name and DOB match a profile?",opts:[{l:'Yes',n:'load_profile'},{l:'No',n:'not_id_sol'}]},
+  not_id_sol:{type:'q',text:"Can you find a matching profile on SOL using their phone name / DOB?",opts:[{l:'Yes',n:'load_profile'},{l:'No',n:'o_refer'}]},
   load_profile:{type:'action',text:"Load their profile on Unity and confirm Full Name",n:'check_flags'},
   check_flags:{type:'q',text:"Check headline info — are there any flags on the account?",hint:"Select the flag present. If none, select 'No flags'.",opts:[{l:'KYC Required',n:'o_kyc'},{l:'Extra Care',n:'flag_extra'},{l:'Revoked',n:'o_revoked'},{l:'Protected',n:'flag_protected'},{l:'"Community" in address',n:'check_caf'},{l:'No flags',n:'check_caf'}]},
   flag_extra:{type:'info',sev:'warn',text:"Extra Care — check what they need and speak patiently",hint:"Continue to CAF notes after noting this",n:'check_caf'},
