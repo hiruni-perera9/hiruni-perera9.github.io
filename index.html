@@ -1,7 +1,173 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Call Flow Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
 <body>
-<h1>Hello World</h1>
-<p>I'm hosted with GitHub Pages.</p>
+
+<p class="page-label">Westpac Call Centre</p>
+
+<main class="app" role="main">
+  <h1 class="sr-only">Call flow guide — step-by-step decision helper for call centre agents</h1>
+
+  <div class="topbar">
+    <div>
+      <div class="topbar-label">Call Flow Guide</div>
+      <div class="topbar-step" id="step-num">Step 1</div>
+    </div>
+    <div class="btn-row">
+      <button id="back-btn" onclick="goBack()" style="display:none;">← Back</button>
+      <button onclick="restart()">Restart</button>
+    </div>
+  </div>
+
+  <div class="trail" id="trail" aria-label="Path taken"></div>
+
+  <div class="card" id="card" role="region" aria-live="polite">
+    <div class="card-tag"  id="card-tag"></div>
+    <div class="card-text" id="card-text"></div>
+    <div class="card-hint" id="card-hint"></div>
+    <button class="card-next" id="card-next" onclick="advance()">Continue →</button>
+  </div>
+
+  <div class="options" id="options"></div>
+</main>
+
+<script>
+const N = {
+  start:{type:'q',text:"What is the customer's ID status?",hint:"Check the system before starting",opts:[{l:'Not ID',n:'not_id_details'},{l:'Partial',n:'load_profile'},{l:'Full ID / Full Mobile',n:'load_profile'},{l:'Yellow Suspended',n:'load_profile'},{l:'Red Suspended',n:'red_caf'}]},
+  not_id_details:{type:'q',text:"Do they have a customer ID, credit card, or account number?",opts:[{l:'Yes',n:'load_profile'},{l:'No',n:'not_id_namedob'}]},
+  not_id_namedob:{type:'q',text:"Does their full name and DOB match a profile?",opts:[{l:'Yes',n:'load_profile'},{l:'No',n:'not_id_sils'}]},
+  not_id_sils:{type:'q',text:"Can you find a matching profile on SILs using their phone name / DOB?",opts:[{l:'Yes',n:'load_profile'},{l:'No',n:'o_refer'}]},
+  load_profile:{type:'action',text:"Load their profile on Unity and confirm Full Name",n:'check_flags'},
+  check_flags:{type:'q',text:"Check headline info — are there any flags on the account?",hint:"Select the flag present. If none, select 'No flags'.",opts:[{l:'KYC Required',n:'o_kyc'},{l:'Extra Care',n:'flag_extra'},{l:'Revoked',n:'o_revoked'},{l:'Protected',n:'flag_protected'},{l:'"Community" in address',n:'check_caf'},{l:'No flags',n:'check_caf'}]},
+  flag_extra:{type:'info',sev:'warn',text:"Extra Care — check what they need and speak patiently",hint:"Continue to CAF notes after noting this",n:'check_caf'},
+  flag_protected:{type:'info',sev:'info',text:"Protected — you may be able to do fund transfers for them",n:'check_caf'},
+  check_caf:{type:'q',text:"Check CAF Notes — were they previously handled by the Indigenous team?",opts:[{l:'Yes',n:'o_indigenous'},{l:'No',n:'caf_keyword'}]},
+  caf_keyword:{type:'q',text:"Is there a keyword in CAF Notes?",opts:[{l:'Yes',n:'keyword_type'},{l:'No',n:'caf_fraud'}]},
+  keyword_type:{type:'q',text:"What type of keyword is it?",opts:[{l:'Must Quote Keyword',n:'keyword_read'},{l:'Special Keyword',n:'keyword_read'}]},
+  keyword_read:{type:'action',text:"Read the keyword disclosure and ask the customer the keyword",n:'keyword_correct'},
+  keyword_correct:{type:'q',text:"Did the customer get the keyword correct?",opts:[{l:'Yes',n:'caf_fraud'},{l:'No',n:'o_refer_100pts'}]},
+  caf_fraud:{type:'q',text:"Is there a FRAUD transaction note in CAF?",opts:[{l:'Yes',n:'fraud_ack'},{l:'No',n:'inquiry_type'}]},
+  fraud_ack:{type:'info',sev:'warn',text:"Keep a note of it, then ask about their inquiry",n:'inquiry_type'},
+  inquiry_type:{type:'q',text:"Is their inquiry related to personal or business accounts?",opts:[{l:'Business',n:'o_business'},{l:'Personal',n:'inq_trained'}]},
+  inq_trained:{type:'q',text:"Is the inquiry related to accounts you're trained on? (savings, credit cards, debit cards)",opts:[{l:'Yes',n:'inq_online'},{l:'No',n:'o_ptt_relevant'}]},
+  inq_online:{type:'q',text:"Can they do it on their Online Banking?",opts:[{l:'Yes',n:'o_digital'},{l:'No',n:'inq_general'}]},
+  inq_general:{type:'q',text:"Is it a general inquiry?",opts:[{l:'Yes',n:'o_website'},{l:'No',n:'inq_adv'}]},
+  inq_adv:{type:'q',text:"Is it in the list of Advanced ID inquiries?",opts:[{l:'Yes',n:'o_advanced_id'},{l:'No',n:'o_full_id'}]},
+  red_caf:{type:'action',text:"Check CAF Notes for the reason they are suspended",n:'red_reason'},
+  red_reason:{type:'q',text:"What is the reason for suspension?",opts:[{l:'ID Failed',n:'red_today'},{l:'Must Quote Keyword Failed',n:'red_mqk'},{l:'Special Keyword Failed',n:'red_mqk'}]},
+  red_today:{type:'q',text:"Did they fail today?",opts:[{l:'Yes',n:'o_callback'},{l:'No',n:'o_advanced_id'}]},
+  red_mqk:{type:'q',text:"Refer to branch. Do they refuse to go?",opts:[{l:'They accept — going to branch',n:'o_refer'},{l:'They refuse to go',n:'o_digi_fraud'}]},
+  o_refer:{type:'out',sev:'danger',text:"Refer to Branch"},
+  o_kyc:{type:'out',sev:'danger',text:"Get PTT to ID Secure or KYC Team"},
+  o_revoked:{type:'out',sev:'danger',text:"Refer to Branch",hint:"Account is revoked"},
+  o_refer_100pts:{type:'out',sev:'danger',text:"Refer to Branch with 100 pts of ID"},
+  o_indigenous:{type:'out',sev:'info',text:"Get PTT to Indigenous Team"},
+  o_business:{type:'out',sev:'info',text:"Get PTT to Business from Support"},
+  o_ptt_relevant:{type:'out',sev:'info',text:"Get PTT to Relevant Team from Support"},
+  o_digital:{type:'out',sev:'success',text:"Check the Online & Mobile Banking Hub / Digital First to guide them"},
+  o_website:{type:'out',sev:'success',text:"Check Website / OBI and T&Cs"},
+  o_advanced_id:{type:'out',sev:'info',text:"Take them to Advanced ID"},
+  o_full_id:{type:'out',sev:'info',text:"Take them to Full ID"},
+  o_callback:{type:'out',sev:'warn',text:"Ask them to call back tomorrow, or refer to branch"},
+  o_digi_fraud:{type:'out',sev:'danger',text:"PTT to Digi Fraud"},
+};
+
+const sevMap = {
+  danger: { tag:'Escalate', tagColor:'var(--color-text-danger)', border:'var(--color-border-danger)', bg:'var(--color-background-danger)' },
+  warn:   { tag:'Caution',  tagColor:'var(--color-text-warning)', border:'var(--color-border-warning)', bg:'var(--color-background-warning)' },
+  success:{ tag:'Outcome',  tagColor:'var(--color-text-success)', border:'var(--color-border-success)', bg:'var(--color-background-success)' },
+  info:   { tag:'Transfer', tagColor:'var(--color-text-info)',    border:'var(--color-border-info)',    bg:'var(--color-background-info)' },
+};
+
+let hist = [], cur = 'start';
+
+function render() {
+  const node = N[cur];
+  const card   = document.getElementById('card');
+  const trail  = document.getElementById('trail');
+  const opts   = document.getElementById('options');
+
+  document.getElementById('step-num').textContent = 'Step ' + (hist.length + 1);
+  document.getElementById('back-btn').style.display = hist.length ? 'inline-flex' : 'none';
+
+  /* Trail */
+  trail.innerHTML = '';
+  hist.slice(-5).forEach((h, i, arr) => {
+    const p = document.createElement('span');
+    p.className = 'trail-pill';
+    p.textContent = h.l;
+    trail.appendChild(p);
+    if (i < arr.length - 1) {
+      const a = document.createElement('span');
+      a.className = 'trail-arrow';
+      a.textContent = '›';
+      trail.appendChild(a);
+    }
+  });
+
+  /* Card appearance */
+  let border = 'var(--color-border-tertiary)', bg = 'var(--color-background-primary)';
+  let tagText = '', tagColor = 'var(--color-text-tertiary)';
+
+  if (node.type === 'action') {
+    tagText = 'Action needed'; tagColor = 'var(--color-text-info)';
+    border = 'var(--color-border-info)';
+  } else if (node.type === 'info' || node.type === 'out') {
+    const s = sevMap[node.sev] || sevMap.info;
+    tagText = s.tag; tagColor = s.tagColor;
+    border = s.border; bg = s.bg;
+  }
+
+  card.style.background   = bg;
+  card.style.borderColor  = border;
+
+  const ctag = document.getElementById('card-tag');
+  ctag.textContent = tagText; ctag.style.color = tagColor;
+  document.getElementById('card-text').textContent = node.text;
+
+  const ch = document.getElementById('card-hint');
+  if (node.hint) { ch.textContent = node.hint; ch.style.display = 'block'; }
+  else { ch.style.display = 'none'; }
+
+  const cn = document.getElementById('card-next');
+  cn.style.display = (node.type === 'action' || node.type === 'info') && node.n ? 'inline-flex' : 'none';
+
+  /* Options */
+  opts.innerHTML = '';
+  if (node.type === 'q') {
+    node.opts.forEach(opt => {
+      const b = document.createElement('button');
+      b.className = 'opt-btn';
+      b.textContent = opt.l;
+      b.onclick = () => { hist.push({ nodeId: cur, l: opt.l }); cur = opt.n; render(); };
+      opts.appendChild(b);
+    });
+  }
+  if (node.type === 'out') {
+    const rb = document.createElement('button');
+    rb.className = 'restart-btn';
+    rb.textContent = 'Start new call →';
+    rb.onclick = restart;
+    opts.appendChild(rb);
+  }
+}
+
+function advance() {
+  const node = N[cur];
+  if (node.n) { hist.push({ nodeId: cur, l: node.type === 'action' ? 'Done' : 'Noted' }); cur = node.n; render(); }
+}
+function goBack()  { if (hist.length) { cur = hist.pop().nodeId; render(); } }
+function restart() { hist = []; cur = 'start'; render(); }
+
+render();
+</script>
 </body>
 </html>
