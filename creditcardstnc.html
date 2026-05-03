@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Westpac Credit Card Guide — Foundever</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style-tc.css">
+</head>
+<body>
+<div id="app"></div>
+<script>
+
+// ── TOPICS ──────────────────────────────────────────────────────────────────
+const TOPICS = [
+  // Card Comparison
+  {cat:'Card Products',     id:'card_compare',   label:'Card Comparison',          desc:'Rates, fees & limits for all 5 cards',        icon:'📊',bg:'#1A1B4B',clause:'Fact Sheet Mar 2026',  tags:['altitude platinum','altitude black','low fee','low rate','lite','interest rate','annual fee','minimum','credit limit','compare']},
+  {cat:'Card Products',  id:'altitude_cards', label:'Altitude Card Comparison',   desc:'Bonus pts, earn rates & reduced fees by card', icon:'🃏',bg:'#1A1B4B',clause:'Westpac.com.au (May 2026)', tags:['altitude platinum','altitude black','qantas platinum','qantas black','velocity platinum','velocity black','bonus points','earn rate','reduced fee','everyday spend','spend cap','first year fee','100000','200000']},
+  // T&C Core
+  {cat:'Account & Card',    id:'contacts',       label:'Key Contacts',             desc:'All support numbers & escalation paths',       icon:'📞',bg:'#1A1B4B',clause:'Quick Ref',            tags:['phone','contact','number','call','afca','complaints','hardship','westpac assist','altitude rewards centre']},
+  {cat:'Account & Card',    id:'pin',            label:'Card & PIN Security',       desc:'PIN rules, liability, protecting the card',    icon:'🔒',bg:'#ededff',clause:'Clause 2',            tags:['pin','security','stolen','lost','protect','liability','passcode','additional cardholder']},
+  {cat:'Account & Card',    id:'using',          label:'Using the Card',            desc:'Purchases, cash advances, limits',             icon:'💳',bg:'#e8f7f2',clause:'Clause 3',            tags:['purchase','cash advance','limit','credit limit','transaction limit','use card','overseas','gambling block','westpac lite']},
+  {cat:'Account & Card',    id:'recurring',      label:'Recurring Payments',        desc:'Autopay agreements, cancelling, tokens',       icon:'🔄',bg:'#fdf0ed',clause:'Clause 3.3',          tags:['recurring','subscription','merchant','tokenised','cancel payment','automatic']},
+  {cat:'Account & Card',    id:'foreign',        label:'Foreign Transactions',      desc:'Overseas fees, currency conversion',           icon:'🌏',bg:'#f0faf4',clause:'Clause 3.4',          tags:['foreign','overseas','currency','conversion','fee','international','abroad']},
+  // Interest & Payments
+  {cat:'Interest & Payments',id:'interest',      label:'Interest & Rates',          desc:'How interest is calculated by category',      icon:'📈',bg:'#fff1f0',clause:'Clause 5',            tags:['interest','rate','apr','purchase rate','cash advance rate','balance category','calculation','20.99','13.74','9.90','21.99']},
+  {cat:'Interest & Payments',id:'intfree',       label:'Interest Free Period',      desc:'45 or 55 days — conditions to keep it',       icon:'✨',bg:'#f0faf4',clause:'Clause 5.2',          tags:['interest free','55 days','45 days','no interest','maintain','payment balance','monthly payment','altitude']},
+  {cat:'Interest & Payments',id:'payments',      label:'Making Payments',           desc:'Minimum payment, how to pay, order',          icon:'💰',bg:'#ededff',clause:'Clause 6',            tags:['payment','minimum','due date','autopay','how to pay','missed payment','pay order','hardship']},
+  {cat:'Interest & Payments',id:'smartplan',     label:'SmartPlan',                 desc:'Instalment plans, setup, fees, rules',        icon:'📱',bg:'#e8f7f2',clause:'Clause 7',            tags:['smartplan','smart plan','instalment','split','autopay smartplan','cancel']},
+  // Altitude Rewards
+  
+  {cat:'Altitude Rewards',  id:'altitude_earn',  label:'Earning Altitude Points',   desc:'How to earn, when you don\'t, switching',     icon:'⭐',bg:'#fffbf0',clause:'Altitude T&Cs §3',    tags:['altitude','earn points','points','government payment','bpay','cash advance','blocked','earn rate','bonus points','qantas','velocity']},
+  {cat:'Altitude Rewards',  id:'altitude_redeem',label:'Redeeming Points',          desc:'Rewards, Pay with Points, combining',         icon:'🎁',bg:'#fdf0ed',clause:'Altitude T&Cs §4',    tags:['redeem','reward','pay with points','cashback','3000 points','account holder','combine','additional cardholder']},
+  {cat:'Altitude Rewards',  id:'altitude_ff',    label:'Frequent Flyer Programs',   desc:'Qantas, Velocity — setup, name matching',     icon:'✈️',bg:'#e8f7f2',clause:'Altitude T&Cs §3.3,§5',tags:['qantas','velocity','frequent flyer','name match','membership number','forfeited','transfer','four months']},
+  {cat:'Altitude Rewards',  id:'altitude_manage',label:'Managing Points',           desc:'Expiry, missing points, checking balance',    icon:'🗂️',bg:'#ededff',clause:'Altitude T&Cs §6',    tags:['expire','expiry','90 days','death','six months','statement credit','missing points','balance','altitude rewards centre']},
+  // Problems & Closing
+  {cat:'Problems & Closing',id:'disputes',       label:'Disputes & Fraud',          desc:'Lost card, unauthorised transactions',         icon:'🚨',bg:'#fff1f0',clause:'Clause 8',            tags:['dispute','fraud','lost','stolen','unauthorised','transaction dispute','chargeback','report','14 days']},
+  {cat:'Problems & Closing',id:'liability',      label:'Liability Rules',           desc:'When customer is or is not liable',            icon:'⚖️',bg:'#fffbf0',clause:'Clause 8.1',          tags:['liable','liability','unauthorised','epayments','loss','negligence','pin loss','150 dollars']},
+  {cat:'Problems & Closing',id:'closing',        label:'Closing & Cancellation',    desc:'Closing account, default, cancellation',       icon:'🔒',bg:'#fff1f0',clause:'Clause 9',            tags:['close','cancel','default','cancellation','suspended','block','card account','altitude points 90']},
+  {cat:'Problems & Closing',id:'changes',        label:'Contract Changes',          desc:'How & when Westpac can vary terms',            icon:'📝',bg:'#f3f3f8',clause:'Clause 10',           tags:['change','vary','notice','rate change','fee change','variation','contract','30 days']},
+  {cat:'Problems & Closing',id:'complaints',     label:'Complaints & Hardship',     desc:'Escalation, AFCA, financial hardship',         icon:'🤝',bg:'#fdf0ed',clause:'Credit Guide',        tags:['complaint','afca','hardship','escalate','financial difficulty','dispute resolution','oaic']},
+  // Reference
+  {cat:'Reference',         id:'glossary',       label:'Glossary',                  desc:'Plain-English definitions of all key terms',  icon:'📖',bg:'#ededff',clause:'Clause 11 + Altitude §12',tags:['glossary','definition','term','meaning','monthly payment','smartplan','balance transfer','altitude','cash advance','government related']},
+];
+
+// ── CONTENT ─────────────────────────────────────────────────────────────────
+const C = {};
+
+C.card_compare = ()=>`
+  <div class="info-card red"><div class="ic-label">⚠ Fee changes — already in effect or upcoming</div><div class="ic-text">
+    <strong>30 April 2026 (already effective):</strong> Cash Advance Fee increased 3% → <strong>3.5%</strong>. Missed Payment Fee increased $15 → <strong>$20</strong> (Westpac Lite remains $0).<br>
+    <strong>29 June 2026 (upcoming):</strong> Low Rate Card moves from $59/year → <strong>$7/month ($84/year)</strong>. Existing customers applying before 29 June keep the $59 annual fee for their first year, then revert to monthly billing.<br>
+    Source: westpac.com.au/personal-banking/credit-cards/card-fee-changes/
+  </div></div>
+  <div class="section-title">All cards at a glance — correct as at 2 March 2026</div>
+  <div class="card-compare-wrap"><table class="card-compare">
+    <tr><th>Feature</th><th><span class="card-tag tag-alt">Altitude</span><br>Altitude Platinum</th><th><span class="card-tag tag-alt">Altitude</span><br>Altitude Black</th><th><span class="card-tag tag-std">Standard</span><br>Low Fee</th><th><span class="card-tag tag-std">Standard</span><br>Low Rate</th><th><span class="card-tag tag-lite">Lite</span><br>Westpac Lite</th></tr>
+    <tr><td>Min Credit Limit</td><td>$3,000</td><td>$6,000</td><td>$500</td><td>$500</td><td>$1,000</td></tr>
+    <tr><td>Purchase Rate</td><td class="highlight">20.99% p.a.</td><td class="highlight">20.99% p.a.</td><td class="highlight">20.99% p.a.</td><td class="highlight">13.74% p.a.</td><td class="highlight">9.90% p.a.</td></tr>
+    <tr><td>Interest Free</td><td>Up to 45 days</td><td>Up to 45 days</td><td>Up to 55 days</td><td>Up to 55 days</td><td>Up to 45 days</td></tr>
+    <tr><td>Cash Advance Rate</td><td>21.99% p.a.</td><td>21.99% p.a.</td><td>21.99% p.a.</td><td>21.99% p.a.</td><td class="na">Not offered</td></tr>
+    <tr><td>Balance Transfer</td><td colspan="4" style="text-align:center;color:var(--t2);font-size:11px">Refer to offer details at time of application — promotional rate, term &amp; fee vary</td><td class="na">Not offered</td></tr>
+    <tr><td>Foreign Transaction Fee</td><td>3% of AUD value</td><td>3% of AUD value</td><td>3% of AUD value</td><td>3% of AUD value</td><td class="highlight">$0 — no foreign transaction fee</td></tr>
+    <tr><td>Cash Advance Fee</td><td>3.5%</td><td>3.5%</td><td>3.5%</td><td>3.5%</td><td class="na">Not offered</td></tr>
+    <tr><td>Annual Fee</td><td>$175/yr</td><td>$295/yr</td><td>$0 or $30/yr*</td><td>$59/yr <span style="color:var(--amber);font-weight:600;font-size:10px">→ $7/mo from 29 Jun 2026</span></td><td>$9/month ($108/yr)</td></tr>
+    <tr><td>Missed Payment Fee</td><td>$20</td><td>$20</td><td>$20</td><td>$20</td><td class="na">$0</td></tr>
+    <tr><td>Min Repayment</td><td colspan="5" style="color:var(--t2);font-size:11px">2% of closing balance or $10, whichever is greater. If closing balance is less than $10, pay in full.</td></tr>
+    <tr><td>Rewards Program</td><td>Altitude Rewards / Qantas / Velocity</td><td>Altitude Rewards / Qantas / Velocity</td><td class="na">No rewards</td><td class="na">No rewards</td><td class="na">No rewards</td></tr>
+  </table></div>
+  <div class="info-card"><div class="ic-label">Low Fee card fee waiver*</div><div class="ic-text">$0 card fee for the first year and every subsequent year when the customer spends $5,000+ on eligible purchases in each 12-month period starting from the Card Fee date. If they don't hit the spend threshold, the $30 annual fee applies.</div></div>
+  <div class="section-title">Key differences to highlight</div>
+  <div class="rule-list">
+    <div class="rule-row"><div class="rule-dot rd-gold"></div><span><strong>Altitude Platinum &amp; Black</strong> — rewards cards with highest annual fees; earn Altitude, Qantas, or Velocity points</span></div>
+    <div class="rule-row"><div class="rule-dot rd-blue"></div><span><strong>Low Fee</strong> — standard rate, lowest fee barrier; fee waived if $5k+ spend met</span></div>
+    <div class="rule-row"><div class="rule-dot rd-blue"></div><span><strong>Low Rate</strong> — 13.74% purchase rate, best for customers who carry a balance</span></div>
+    <div class="rule-row"><div class="rule-dot rd-green"></div><span><strong>Westpac Lite</strong> — lowest purchase rate (9.90%), no late payment fee, no cash advances or balance transfers, and <strong>zero foreign transaction fees</strong> including online shopping</span></div>
+  </div>`;
+
+C.contacts = ()=>`
+  <div class="section-title">24/7 General Enquiries</div>
+  <div class="contact-grid">
+    <div class="contact-card"><div class="cc-name">Australia (24/7)</div><div class="cc-num">1300 651 089</div><div class="cc-note">Lost/stolen, general queries, account help</div></div>
+    <div class="contact-card"><div class="cc-name">International</div><div class="cc-num">+61 2 9155 7700</div><div class="cc-note">Customer calling from overseas</div></div>
+    <div class="contact-card"><div class="cc-name">Customer Solutions</div><div class="cc-num">132 032</div><div class="cc-note">Complaints, errors on statements, general support</div></div>
+    <div class="contact-card"><div class="cc-name">Westpac Assist (Hardship)</div><div class="cc-num">1800 067 497</div><div class="cc-note">Financial difficulty — refer immediately</div></div>
+  </div>
+  <div class="section-title">Altitude Rewards</div>
+  <div class="contact-grid">
+    <div class="contact-card"><div class="cc-name">Altitude Rewards Centre</div><div class="cc-num">1300 887 820</div><div class="cc-note">Points queries, redemptions, missing points</div></div>
+    <div class="contact-card"><div class="cc-name">Altitude Online</div><div class="cc-num">westpac.com.au/ccrewards</div><div class="cc-note">Earn rates, points caps, bonus points info</div></div>
+  </div>
+  <div class="section-title">Dispute Resolution</div>
+  <div class="contact-grid">
+    <div class="contact-card"><div class="cc-name">AFCA (free, independent)</div><div class="cc-num">1800 931 678</div><div class="cc-note">afca.org.au — only after Westpac escalation</div></div>
+    <div class="contact-card"><div class="cc-name">ASIC Infoline</div><div class="cc-num">1300 300 630</div><div class="cc-note">Regulatory complaints, rights information</div></div>
+  </div>
+  <div class="section-title">Accessibility</div>
+  <div class="info-card blue"><div class="ic-label">National Relay Service</div><div class="ic-text">Customers who are deaf or have difficulty hearing/speaking can use the NRS — register at <strong>accesshub.gov.au/about-the-nrs</strong>. More info at westpac.com.au/web-accessibility.</div></div>
+  <div class="section-title">Online Self-Service</div>
+  <div class="rule-list">
+    <div class="rule-row"><div class="rule-dot rd-blue"></div>Credit card info: westpac.com.au/personal-banking/credit-cards</div>
+    <div class="rule-row"><div class="rule-dot rd-blue"></div>Feedback &amp; complaints: westpac.com.au/contact-us/feedback-complaints</div>
+    <div class="rule-row"><div class="rule-dot rd-blue"></div>Westpac Assist: westpac.com.au/westpacassist</div>
+    <div class="rule-row"><div class="rule-dot rd-blue"></div>Fraud &amp; disputes: westpac.com.au/fraud-disputes-lost-stolen-cards</div>
+    <div class="rule-row"><div class="rule-dot rd-blue"></div>Autopay: westpac.com.au/autopay</div>
+    <div class="rule-row"><div class="rule-dot rd-gold"></div>Altitude Rewards Account: via Online Banking or Westpac App</div>
+  </div>`;
+
+C.pin = ()=>`
+  <div class="section-title">PIN rules — what customers must do</div>
+  <div class="rule-list">
+    <div class="rule-row"><div class="rule-dot rd-red"></div>Never share PIN with anyone — including family and friends</div>
+    <div class="rule-row"><div class="rule-dot rd-red"></div>Never write PIN on the card or anything kept with the card</div>
+    <div class="rule-row"><div class="rule-dot rd-red"></div>Do not choose a PIN that represents their birthdate or is easily guessed</div>
+    <div class="rule-row"><div class="rule-dot rd-amber"></div>If they must write it down — it must be disguised or stored in a secured locked place</div>
+    <div class="rule-row"><div class="rule-dot rd-blue"></div>Card must be signed as soon as received (does not apply to PartPay Card)</div>
+    <div class="rule-row"><div class="rule-dot rd-blue"></div>Card must be kept on them or in a safe place at all times</div>
+  </div>
+  <div class="section-title">PartPay Card PIN</div>
+  <div class="info-card blue"><div class="ic-label">Important</div><div class="ic-text">The PartPay Card PIN matches the linked card's PIN at issue. If the linked card's PIN is later changed, the PartPay Card PIN does NOT automatically update — customer must change it separately if they want them to match.</div></div>
+  <div class="section-title">Additional Cardholders</div>
+  <div class="rule-list">
+    <div class="rule-row"><div class="rule-dot rd-blue"></div>Can be issued to anyone aged 16+</div>
+    <div class="rule-row"><div class="rule-dot rd-amber"></div>Primary cardholder is responsible for all transactions and breaches by Additional Cardholder</div>
+    <div class="rule-row"><div class="rule-dot rd-blue"></div>Additional Cardholder can request replacement card if lost/stolen/damaged — unless cancelled by primary</div>
+    <div class="rule-row"><div class="rule-dot rd-red"></div>Additional Cardholder CANNOT change credit limit, close the account, or request replacement after being cancelled by primary</div>
+    <div class="rule-row"><div class="rule-dot rd-red"></div>Additional Cardholders cannot redeem Altitude Points — only the Account Holder can redeem</div>
+    <div class="rule-row"><div class="rule-dot rd-blue"></div>Not available on Westpac Student Visa accounts</div>
+  </div>`;
+
+C.using = ()=>`
+  <div class="section-title">Permitted uses</div>
+  <div class="rule-list">
+    <div class="rule-row"><div class="rule-dot rd-green"></div>Purchases, Cash Advances, Balance Transfers from other credit cards</div>
+    <div class="rule-row"><div class="rule-dot rd-red"></div>Must be used mainly for personal or household expenses — business use may result in cancellation</div>
+    <div class="rule-row"><div class="rule-dot rd-red"></div>Must not be used for illegal purposes or in breach of international sanctions</div>
+  </div>
+  <div class="section-title">Card-specific restrictions</div>
+  <div class="info-card amber"><div class="ic-label">Westpac Lite — no cash advances or balance transfers</div><div class="ic-text">Cash Advances are not permitted. If one accidentally goes through it will be treated as a Purchase and must still be repaid. Balance Transfers are also not available on Westpac Lite.</div></div>
+  <div class="info-card blue"><div class="ic-label">PartPay Card (Altitude only)</div><div class="ic-text">PartPay Cards can ONLY make eligible Purchases. Cash Advances are not permitted. If one accidentally goes through it is treated as a PartPay Purchase.</div></div>
+  <div class="section-title">Credit limit</div>
+  <div class="rule-list">
+    <div class="rule-row"><div class="rule-dot rd-blue"></div>Set in the Financial Table (letter of offer)</div>
+    <div class="rule-row"><div class="rule-dot rd-amber"></div>Authorised transactions (including holds) reduce available amount even before processing</div>
+    <div class="rule-row"><div class="rule-dot rd-red"></div>Going over the limit — the excess is payable immediately and an over-limit fee may apply</div>
+    <div class="rule-row"><div class="rule-dot rd-blue"></div>Customer can request a reduction — must repay any difference first if reducing below outstanding balance</div>
+  </div>
+  <div class="section-title">When we may decline a transaction</div>
+  <div class="rule-list">
+    <div class="rule-row"><div class="rule-dot rd-amber"></div>Would exceed a limit</div>
+    <div class="rule-row"><div class="rule-dot rd-amber"></div>Suspected fraud</div>
+    <div class="rule-row"><div class="rule-dot rd-amber"></div>Account in arrears</div>
+    <div class="rule-row"><div class="rule-dot rd-amber"></div>May be illegal or prohibited by international sanctions</div>
+  </div>
+  <div class="section-title">Gambling block</div>
+  <div class="rule-list">
+    <div class="rule-row"><div class="rule-dot rd-blue"></div>Activate via online banking (Card Services menu) or by calling us</div>
+    <div class="rule-row"><div class="rule-dot rd-amber"></div>Cancellation takes up to 2 business days to take effect</div>
+    <div class="rule-row"><div class="rule-dot rd-red"></div>Does NOT block: recurring payments authorised before the request, BPAY, cash withdrawals, or offline transactions</div>
+  </div>`;
+
+C.recurring = ()=>`
+  <div class="section-title">How recurring payments work</div>
+  <div class="rule-list">
+    <div class="rule-row"><div class="rule-dot rd-blue"></div>Customer authorises a merchant to charge their card automatically on a recurring basis</div>
+    <div class="rule-row"><div class="rule-dot rd-amber"></div>If merchant uses Tokenised Credentials, card details may auto-update when card is reissued — reissuing may NOT stop the recurring payment</div>
+  </div>
+  <div class="section-title">How to cancel</div>
+  <div class="steps">
+    <div class="step-row"><div class="step-num">1</div><div class="step-text"><strong>Advise customer to contact the merchant directly</strong> — before the next payment is due</div></div>
+    <div class="step-row"><div class="step-num">2</div><div class="step-text">If they don't leave enough time, <strong>they may still be liable for the next payment</strong></div></div>
+    <div class="step-row"><div class="step-num">3</div><div class="step-text">If the merchant doesn't act — <strong>customer can contact us to dispute the transaction</strong></div></div>
+  </div>
+  <div class="info-card red"><div class="ic-label">After card cancellation or account closure</div><div class="ic-text">Even after a card is cancelled or account blocked, recurring payments may still go through in some circumstances. Customer must cancel with merchants directly. They remain liable for uncancelled recurring payments.</div></div>`;
+
+C.foreign = ()=>`
+  <div class="section-title">What counts as a foreign transaction</div>
+  <div class="rule-list">
+    <div class="rule-row"><div class="rule-dot rd-blue"></div>Any transaction in a foreign currency</div>
+    <div class="rule-row"><div class="rule-dot rd-blue"></div>Any transaction processed outside Australia — even if the customer is physically in Australia (e.g. buying from an overseas website)</div>
+  </div>
+  <div class="info-card amber"><div class="ic-label">Foreign Transaction Fee — standard cards</div><div class="ic-text">3% applies on all other Westpac credit cards (Altitude Platinum, Altitude Black, Low Fee, Low Rate). Exact fee is in the customer's Financial Table or at westpac.com.au.</div></div>
+  <div class="info-card green"><div class="ic-label">Westpac Lite — $0 foreign transaction fee</div><div class="ic-text">The Westpac Lite Card charges no foreign transaction fees — including for online shopping with overseas merchants. This is one of its key differentiators from other Westpac cards.</div></div>
+  <div class="section-title">Currency conversion</div>
+  <div class="rule-list">
+    <div class="rule-row"><div class="rule-dot rd-blue"></div>Visa or Mastercard converts foreign currency to AUD at their own exchange rate</div>
+    <div class="rule-row"><div class="rule-dot rd-amber"></div>If a transaction is later refunded — the exchange rate for the refund may differ from the original</div>
+    <div class="rule-row"><div class="rule-dot rd-amber"></div>Dynamic Currency Conversion (merchant converts to AUD at point of sale) — rate set by merchant, foreign transaction fee may still apply</div>
+  </div>`;
+
+C.interest = ()=>`
+  <div class="section-title">Purchase rates by card</div>
+  <div class="card-compare-wrap"><table class="card-compare">
+    <tr><th>Card</th><th>Purchase Rate</th><th>Cash Advance Rate</th><th>Interest Free</th></tr>
+    <tr><td>Altitude Platinum</td><td class="highlight">20.99% p.a.</td><td>21.99% p.a.</td><td>Up to 45 days</td></tr>
+    <tr><td>Altitude Black</td><td class="highlight">20.99% p.a.</td><td>21.99% p.a.</td><td>Up to 45 days</td></tr>
+    <tr><td>Low Fee Card</td><td class="highlight">20.99% p.a.</td><td>21.99% p.a.</td><td>Up to 55 days</td></tr>
+    <tr><td>Low Rate Card</td><td class="highlight">13.74% p.a.</td><td>21.99% p.a.</td><td>Up to 55 days</td></tr>
+    <tr><td>Westpac Lite</td><td class="highlight">9.90% p.a.</td><td class="na">Not offered</td><td>Up to 45 days</td></tr>
+  </table></div>
+  <div class="section-title">How interest is calculated</div>
+  <div class="rule-list">
+    <div class="rule-row"><div class="rule-dot rd-blue"></div>Applied at end of each statement period</div>
+    <div class="rule-row"><div class="rule-dot rd-blue"></div>Calculated daily: outstanding balance × (Annual Rate ÷ 365), summed across all days in the period</div>
+    <div class="rule-row"><div class="rule-dot rd-amber"></div>PartPay Balance is charged at 0% — no interest applies to it</div>
+  </div>
+  <div class="section-title">Balance categories &amp; rates</div>
+  <table class="balance-table">
+    <tr class="bt-head"><td>Category</td><td>What's included</td><td>Rate</td></tr>
+    <tr class="bt-row"><td>Purchase Balance</td><td>Purchases, interest on purchases, most fees, Missed PartPay Payments</td><td>Purchase Rate</td></tr>
+    <tr class="bt-row"><td>Cash Advance Balance</td><td>Cash advances, cash advance fees, interest on cash advance balance</td><td>Cash Advance Rate</td></tr>
+    <tr class="bt-row"><td>Balance Transfer</td><td>Balance transfers, balance transfer fees, interest on balance transfer</td><td>Balance Transfer Rate(s)</td></tr>
+    <tr class="bt-row"><td>SmartPlan Balance</td><td>SmartPlans, SmartPlan fees, interest on SmartPlan balance</td><td>SmartPlan Rate(s)</td></tr>
+    <tr class="bt-row"><td>PartPay Balance</td><td>PartPay purchases, foreign transaction fees on PartPay</td><td>0.00%</td></tr>
+  </table>
+  <div class="section-title">When interest starts</div>
+  <table class="balance-table">
+    <tr class="bt-head"><td>Item</td><td>Interest charged from</td></tr>
+    <tr class="bt-row"><td>Purchases &amp; Cash Advances</td><td>Day of transaction (subject to interest free period)</td></tr>
+    <tr class="bt-row"><td>Interest charges, annual &amp; monthly fees</td><td>Day after the charge/fee is applied</td></tr>
+    <tr class="bt-row"><td>All other fees</td><td>Day the fee is applied</td></tr>
+    <tr class="bt-row"><td>Balance Transfers</td><td>Day transferred to the account</td></tr>
+    <tr class="bt-row"><td>SmartPlans</td><td>Day the SmartPlan is activated</td></tr>
+  </table>
+  <div class="info-card amber"><div class="ic-label">Refunded purchases</div><div class="ic-text">Interest still applies for the period between the original transaction and the refund date — unless an interest free period applies.</div></div>`;
+
+C.intfree = ()=>`
+  <div class="section-title">Interest free days by card</div>
+  <div class="two-col">
+    <div class="col-card"><div class="col-hdr" style="color:var(--brand)">45 days</div><div class="col-item">Altitude Platinum</div><div class="col-item">Altitude Black</div><div class="col-item">Westpac Lite</div></div>
+    <div class="col-card"><div class="col-hdr" style="color:var(--green)">55 days</div><div class="col-item">Low Fee Card</div><div class="col-item">Low Rate Card</div></div>
+  </div>
+  <div class="section-title">What they need to pay to keep the interest free period</div>
+  <div class="two-col">
+    <div class="col-card"><div class="col-hdr" style="color:var(--t3)">No Balance Transfer / SmartPlan / PartPay</div><div class="col-item">Pay the full <strong>closing balance</strong> by the due date each month</div></div>
+    <div class="col-card"><div class="col-hdr" style="color:var(--t3)">Has Balance Transfer, SmartPlan, or PartPay Card</div><div class="col-item">Pay the <strong>Monthly Payment Balance</strong> by due date — no need to pay off the full BT or SmartPlan</div></div>
+  </div>
+  <div class="info-card red"><div class="ic-label">If they don't pay enough — interest free period ends</div><div class="ic-text">Interest kicks in on ALL new purchases AND the outstanding purchase balance — regardless of when individual purchases were made. A new interest free period starts next time they pay the full required amount by the due date.</div></div>
+  <div class="info-card amber"><div class="ic-label">Common confusion — interest on next statement after paying in full</div><div class="ic-text">This usually means they didn't pay the previous month's required amount in full. The new interest is for the period between the last statement and when they paid. This is correct.</div></div>`;
+
+C.payments = ()=>`
+  <div class="section-title">Minimum payment</div>
+  <div class="rule-list">
+    <div class="rule-row"><div class="rule-dot rd-blue"></div>2% of closing balance or $10, whichever is greater. If balance &lt; $10, pay in full</div>
+    <div class="rule-row"><div class="rule-dot rd-red"></div>If missed — a Missed Payment Fee applies (except on Westpac Lite, where fee is $0). Note: fee structure changing 30 April 2026</div>
+    <div class="rule-row"><div class="rule-dot rd-amber"></div>Refunds, reversals, cashback, prior overpayments do NOT count toward the minimum payment</div>
+    <div class="rule-row"><div class="rule-dot rd-green"></div>PartPay Balance payments credited between statement date and due date DO count</div>
+  </div>
+  <div class="section-title">How payments are applied (order)</div>
+  <div class="steps">
+    <div class="step-row"><div class="step-num">1</div><div class="step-text">Applied to <strong>most recent statement balances</strong> first</div></div>
+    <div class="step-row"><div class="step-num">2</div><div class="step-text">Then to <strong>transactions since last statement</strong></div></div>
+  </div>
+  <div class="info-card blue"><div class="ic-label">Within each group — highest rate first</div><div class="ic-text">Within each group: payments go to balances by Annual Percentage Rate highest to lowest. Within the same rate: (1) interest charges, (2) fees, (3) transactions — oldest first in each.</div></div>
+  <div class="info-card green"><div class="ic-label">Customer cannot pay?</div><div class="ic-text">Refer immediately to Westpac Assist: <strong>1800 067 497</strong>. Options include extending the term, reducing payments, or deferring payments.</div></div>`;
+
+C.smartplan = ()=>`
+  <div class="info-card blue"><div class="ic-label">What is SmartPlan?</div><div class="ic-text">Splits an eligible large purchase, or part/all of the credit card balance (excluding PartPay Balance), into manageable monthly instalments. Creates a separate SmartPlan Balance — the rest is the Main Account Balance.</div></div>
+  <div class="section-title">Setup</div>
+  <div class="rule-list">
+    <div class="rule-row"><div class="rule-dot rd-blue"></div>Via Online Banking (desktop or Westpac App)</div>
+    <div class="rule-row"><div class="rule-dot rd-amber"></div>May take up to 2 business days — customer will be notified if accepted</div>
+    <div class="rule-row"><div class="rule-dot rd-amber"></div>Maximum 8 active SmartPlans at once</div>
+    <div class="rule-row"><div class="rule-dot rd-blue"></div>Does not change the credit limit</div>
+  </div>
+  <div class="info-card amber"><div class="ic-label">Autopay must be updated before setting up SmartPlan</div><div class="ic-text">If Autopay is set to a fixed dollar amount or fixed percentage, customer must update it first. Must be changed to "Monthly Payment Balance" (to keep interest free period) or "Monthly Payment" (to meet minimum payment requirements).</div></div>
+  <div class="section-title">Missed instalment</div>
+  <div class="rule-list">
+    <div class="rule-row"><div class="rule-dot rd-red"></div>Westpac may cancel the plan and move balance back to Main Account Balance</div>
+    <div class="rule-row"><div class="rule-dot rd-red"></div>Setup fees are not refunded</div>
+    <div class="rule-row"><div class="rule-dot rd-amber"></div>If plan continues, instalments are not adjusted — customer must make catch-up payments</div>
+  </div>
+  <div class="section-title">Cancellation</div>
+  <div class="rule-list">
+    <div class="rule-row"><div class="rule-dot rd-green"></div>Customer can cancel at any time via Online Banking</div>
+    <div class="rule-row"><div class="rule-dot rd-amber"></div>Westpac can cancel if: instalment not paid, payment arrangement below Monthly Payment, or T&C breach</div>
+  </div>`;
+
+C.altitude_cards = ()=>`
+  <div class="info-card amber"><div class="ic-label">Promotional offers — subject to change</div><div class="ic-text">Bonus points offers and reduced first-year fees can be varied or withdrawn at any time. Always verify the current offer at westpac.com.au before quoting to a customer. Information below is current as at May 2026.</div></div>
+
+  <div class="section-title">Altitude Rewards — bonus points &amp; fees</div>
+  <div class="card-compare-wrap"><table class="card-compare">
+    <tr><th></th><th><span class="card-tag tag-alt">Rewards</span><br>Altitude Rewards Platinum</th><th><span class="card-tag tag-alt">Rewards</span><br>Altitude Rewards Black</th></tr>
+    <tr><td>Standard Annual Fee</td><td class="highlight">$175 p.a.</td><td class="highlight">$295 p.a.</td></tr>
+    <tr><td>Rewards Program Fee</td><td class="highlight">$0</td><td class="highlight">$0</td></tr>
+    <tr><td>Bonus Points Offer</td><td>Up to <strong>100,000</strong> Altitude Rewards Points</td><td>Up to <strong>200,000</strong> Altitude Rewards Points</td></tr>
+    <tr><td>Year 1 Bonus</td><td>75,000 pts — spend $3k+ on eligible purchases within <strong>90 days</strong> of card approval</td><td>100,000 pts — spend $12k+ on eligible purchases within <strong>12 months</strong> of card approval</td></tr>
+    <tr><td>Year 2 Bonus</td><td>25,000 pts — after first eligible purchase in year 2</td><td>100,000 pts — spend $12k+ on eligible purchases within 12 months of anniversary</td></tr>
+    <tr><td>Reduced Fee (new customer)</td><td><strong>$99</strong> first year (then $175)</td><td><strong>$200</strong> first year (then $295)</td></tr>
+    <tr><td>Reduced Fee (existing Westpac)</td><td><strong>$49</strong> first year (then $175)</td><td><strong>$149</strong> first year (then $295)</td></tr>
+    <tr><td>Min Income</td><td>$30,000 p.a.</td><td>$75,000 p.a.</td></tr>
+  </table></div>
+
+  <div class="section-title">Altitude Qantas — bonus points &amp; fees</div>
+  <div class="card-compare-wrap"><table class="card-compare">
+    <tr><th></th><th><span class="card-tag tag-alt">Qantas</span><br>Altitude Qantas Platinum</th><th><span class="card-tag tag-alt">Qantas</span><br>Altitude Qantas Black</th></tr>
+    <tr><td>Standard Annual Fee</td><td class="highlight">$175 p.a. + $75 Rewards Fee = $250</td><td class="highlight">$295 p.a. + $75 Rewards Fee = $370</td></tr>
+    <tr><td>Bonus Points Offer</td><td>Up to <strong>100,000</strong> Qantas Points</td><td>Up to <strong>150,000</strong> Qantas Points</td></tr>
+    <tr><td>Year 1 Bonus</td><td>70,000 pts — spend $4k+ within <strong>90 days</strong> of card approval</td><td>90,000 pts — spend $6k+ within <strong>90 days</strong> of card approval</td></tr>
+    <tr><td>Year 2 Bonus</td><td>30,000 pts — spend $4k+ within 90 days of anniversary</td><td>60,000 pts — spend $6k+ within 90 days of anniversary</td></tr>
+    <tr><td>Reduced Fee (existing Westpac only)</td><td><strong>$99</strong> card fee first year (then $175). $75 Rewards Fee still applies.</td><td><strong>$200</strong> card fee first year (then $295). $75 Rewards Fee still applies.</td></tr>
+    <tr><td>Lounge Access</td><td class="na">None</td><td>2 Qantas Club Complimentary Invitations/year (with eligible Qantas spend)</td></tr>
+  </table></div>
+
+  <div class="section-title">Altitude Velocity — bonus points &amp; fees</div>
+  <div class="card-compare-wrap"><table class="card-compare">
+    <tr><th></th><th><span class="card-tag tag-alt">Velocity</span><br>Altitude Velocity Platinum</th><th><span class="card-tag tag-alt">Velocity</span><br>Altitude Velocity Black</th></tr>
+    <tr><td>Standard Annual Fee</td><td class="highlight">$175 p.a. + $75 Rewards Fee = $250</td><td class="highlight">$295 p.a. + $75 Rewards Fee = $370</td></tr>
+    <tr><td>Bonus Points Offer</td><td>Up to <strong>100,000</strong> Velocity Points</td><td>Up to <strong>150,000</strong> Velocity Points</td></tr>
+    <tr><td>Year 1 Bonus</td><td>70,000 pts — spend $4k+ within <strong>90 days</strong> of card approval</td><td>90,000 pts — spend $6k+ within <strong>90 days</strong> of card approval</td></tr>
+    <tr><td>Year 2 Bonus</td><td>30,000 pts — spend $4k+ within 90 days of anniversary</td><td>60,000 pts — spend $6k+ within 90 days of anniversary</td></tr>
+    <tr><td>Reduced Fee (existing Westpac only)</td><td><strong>$99</strong> card fee first year (then $175). $75 Rewards Fee still applies.</td><td><strong>$200</strong> card fee first year (then $295). $75 Rewards Fee still applies.</td></tr>
+    <tr><td>Lounge Access</td><td class="na">None</td><td>2 Virgin Australia Domestic Lounge Passes/year (with eligible Virgin Australia spend)</td></tr>
+  </table></div>
+
+  <div class="section-title">Earn rates by card type</div>
+  <div class="card-compare-wrap"><table class="card-compare">
+    <tr><th>Card</th><th>International spend</th><th>Everyday spend†</th><th>All other purchases</th><th>Spend cap</th></tr>
+    <tr><td>Altitude Rewards Platinum</td><td><strong>2</strong> pts / $1</td><td><strong>1.25</strong> pts / $1</td><td><strong>1</strong> pt / $1</td><td>0.5 pts/$ after $5,000 in cycle</td></tr>
+    <tr><td>Altitude Rewards Black</td><td colspan="3" style="color:var(--t2);font-size:11px">Higher earn rates than Platinum — check westpac.com.au/ccrewards or call 1300 887 820 for current rates</td><td>Check at westpac.com.au</td></tr>
+    <tr><td>Altitude Qantas Platinum</td><td>Higher rate</td><td>Standard rate</td><td>Base rate</td><td>0.2 pts/$ after $5,000 in cycle</td></tr>
+    <tr><td>Altitude Qantas Black</td><td><strong>1.2</strong> Qantas pts / $1</td><td><strong>0.8</strong> Qantas pts / $1</td><td>Base rate</td><td>Drops after $10,000/statement period</td></tr>
+    <tr><td>Altitude Velocity Platinum/Black</td><td colspan="3" style="color:var(--t2);font-size:11px">Equivalent structure to Qantas — check westpac.com.au/ccrewards for exact Velocity earn rates</td><td>Check at westpac.com.au</td></tr>
+  </table></div>
+
+  <div class="info-card blue"><div class="ic-label">Everyday spend categories (5 sub-categories)</div><div class="ic-text"><strong>Supermarkets</strong> — Woolworths, Coles, IGA, Harris Farm, ALDI<br><strong>Department stores</strong> — Kmart, Target, Big W, David Jones, Myer<br><strong>Petrol stations</strong> — 7-Eleven, Shell, Ampol, Caltex, BP<br><strong>Dining</strong> — restaurants, cafes, fast food, bars, hotels, entertainment venues<br><strong>Utilities</strong> — water, gas, electricity, internet, mobile and streaming services (excluding BPAY payments)</div></div>
+
+  <div class="info-card amber"><div class="ic-label">Important — intermediary services (Afterpay, PayPal etc.)</div><div class="ic-text">If a customer makes a payment in any category via an intermediary service (Afterpay, PayPal or similar), the transaction is categorised as "all other purchases" — not as the category the underlying merchant belongs to. This affects their earn rate.</div></div>
+
+  <div class="section-title">Bonus offer eligibility — who cannot apply</div>
+  <div class="info-card red"><div class="ic-label">24-month exclusion — applies to ALL 6 Altitude cards</div><div class="ic-text">The bonus points offer is NOT available to anyone who currently holds, or has held in the last 24 months, an Altitude Platinum or Altitude Black card with Altitude Rewards, Qantas, or Velocity. Product switches, upgrades, and Westpac group staff are also ineligible. The reduced first-year fee is also only available to existing Westpac customers who do not currently hold an Altitude card.</div></div>
+
+  <div class="section-title">Missing Year 1 bonus</div>
+  <div class="info-card"><div class="ic-label">If they don't hit the Year 1 spend threshold</div><div class="ic-text">They forfeit the Year 1 bonus only. They are still eligible for the Year 2 bonus if they meet the spend criteria in year 2 during the promotional period.</div></div>
+
+  <div class="section-title">When do points appear on the account?</div>
+  <div class="card-compare-wrap"><table class="card-compare">
+    <tr class="bt-head"><td>Type</td><td>When credited</td></tr>
+    <tr class="bt-row"><td><strong>Regular Altitude Rewards Points</strong></td><td>Awarded when the transaction is processed to the card account. Visible on the monthly statement.</td></tr>
+    <tr class="bt-row"><td><strong>Qantas or Velocity Points (regular earn)</strong></td><td>Added to the customer's Frequent Flyer account on a <strong>monthly basis</strong> — once per statement cycle. Not instantly.</td></tr>
+    <tr class="bt-row"><td><strong>Bonus points (Year 1 &amp; Year 2)</strong></td><td>Credited to the points balance within <strong>12 weeks</strong> of meeting the spend criteria. Not immediately after the spend threshold is hit.</td></tr>
+  </table></div>
+  <div class="info-card amber">
+    <div class="ic-label">Common customer complaint — "my bonus points haven't arrived"</div>
+    <div class="ic-text">Bonus points can take up to 12 weeks from when the spend threshold is met. If it has been less than 12 weeks, advise the customer to wait. If it has been more than 12 weeks, refer to the Altitude Rewards Centre on <strong>1300 887 820</strong> to investigate. For missing regular points, the customer must contact us within <strong>6 months</strong> of the relevant purchase date.
+  </div></div>`;
+
+C.altitude_earn = ()=>`
+  <div class="section-title">Three Altitude programs — choose one</div>
+  <div class="two-col">
+    <div class="col-card"><div class="col-hdr" style="color:var(--gold)">⭐ Altitude Rewards</div><div class="col-item">Earn Altitude Points — redeem for rewards via Altitude Rewards Account</div></div>
+    <div class="col-card"><div class="col-hdr" style="color:var(--red)">✈️ Altitude Qantas</div><div class="col-item">Points credited directly to customer's Qantas Frequent Flyer account</div></div>
+  </div>
+  <div class="two-col">
+    <div class="col-card"><div class="col-hdr" style="color:var(--brand)">✈️ Altitude Velocity</div><div class="col-item">Points credited directly to customer's Velocity (Virgin) account</div></div>
+    <div class="col-card"><div class="col-hdr" style="color:var(--t3)">Switching programs</div><div class="col-item">Customer can request a switch. Points earned under the old program are NOT converted to the new one — they stay as-is or may be forfeited</div></div>
+  </div>
+  <div class="section-title">How points are earned</div>
+  <div class="rule-list">
+    <div class="rule-row"><div class="rule-dot rd-green"></div>Earned on each eligible transaction posted to the card account</div>
+    <div class="rule-row"><div class="rule-dot rd-blue"></div>Calculated on the AUD value, rounded down to the nearest whole dollar — fractions of points are discarded</div>
+    <div class="rule-row"><div class="rule-dot rd-amber"></div>A points cap may apply per statement period — check westpac.com.au/ccrewards or call 1300 887 820</div>
+    <div class="rule-row"><div class="rule-dot rd-amber"></div>Points are deducted when a transaction is refunded or reversed</div>
+  </div>
+  <div class="section-title">When points are NOT earned</div>
+  <div class="info-card red"><div class="ic-label">Ineligible transactions — never earn points</div><div class="ic-text">Fees and interest charges · Cash Advances · Balance Transfers · Declined PartPay Card purchases · BPAY / Post Billpay payments · Government Related Payments (ATO, Australia Post, motor vehicle registries, local/state/federal government agencies)</div></div>
+  <div class="info-card red"><div class="ic-label">Account status — points suspended (cannot earn OR redeem)</div><div class="ic-text">Minimum Payment Due not paid on time · Card or account blocked or closed · Fraud on the account · Card reported lost or stolen · Card used for business purposes · Customer in breach of credit card T&Cs (including exceeding credit limit)</div></div>
+  <div class="info-card"><div class="ic-label">Note</div><div class="ic-text">Westpac may adjust the points balance by removing any points incorrectly awarded. In some circumstances Westpac may allow redemption at its discretion even if an account issue exists.</div></div>`;
+
+C.altitude_redeem = ()=>`
+  <div class="section-title">Who can redeem</div>
+  <div class="info-card red"><div class="ic-label">Account Holder only</div><div class="ic-text">Only the Account Holder can redeem Altitude Points. Additional Cardholders cannot redeem rewards — even if they earned the points through their transactions.</div></div>
+  <div class="section-title">Minimum to redeem</div>
+  <div class="rule-list">
+    <div class="rule-row"><div class="rule-dot rd-blue"></div>Minimum balance of <strong>3,000 Points</strong> unless Westpac advises otherwise</div>
+    <div class="rule-row"><div class="rule-dot rd-blue"></div>Must have enough points at the time of the claim</div>
+  </div>
+  <div class="section-title">How to redeem</div>
+  <div class="rule-list">
+    <div class="rule-row"><div class="rule-dot rd-green"></div>Via Altitude Rewards Account — accessible through Online Banking or the Westpac App</div>
+    <div class="rule-row"><div class="rule-dot rd-green"></div>Or call the Altitude Rewards Centre: <strong>1300 887 820</strong></div>
+    <div class="rule-row"><div class="rule-dot rd-amber"></div>If Card Account is closed or customer switches out of Altitude Rewards — they may need to redeem through the Altitude Rewards Centre rather than Online Banking</div>
+  </div>
+  <div class="section-title">Combining points</div>
+  <div class="rule-list">
+    <div class="rule-row"><div class="rule-dot rd-green"></div>Points from multiple eligible Altitude Card Accounts in the customer's own name can be combined</div>
+    <div class="rule-row"><div class="rule-dot rd-red"></div>Points CANNOT be combined with Altitude Points earned on someone else's account</div>
+    <div class="rule-row"><div class="rule-dot rd-red"></div>Points cannot be transferred to another person and have no cash value</div>
+  </div>
+  <div class="section-title">Important reward rules</div>
+  <div class="rule-list">
+    <div class="rule-row"><div class="rule-dot rd-amber"></div>All rewards are subject to availability — substitutions may be necessary but will be comparable</div>
+    <div class="rule-row"><div class="rule-dot rd-red"></div>Once redemption is processed — customer generally cannot cancel, change, exchange, or return the reward for a points re-credit</div>
+    <div class="rule-row"><div class="rule-dot rd-amber"></div>Read the specific reward provider's conditions — if there's a conflict, the provider's conditions prevail</div>
+    <div class="rule-row"><div class="rule-dot rd-blue"></div>Westpac is not responsible for rewards lost/stolen/damaged after dispatch for reasons beyond their control</div>
+  </div>
+  <div class="section-title">Pay with Points</div>
+  <div class="info-card blue"><div class="ic-label">Pay with Points feature</div><div class="ic-text">Allows customer to use Altitude Points to receive a cashback credit to their account after making an eligible purchase. The credit appears as a separate transaction on the statement. Important: Pay with Points credits do NOT count as payments toward the customer's payment obligations under the credit contract.</div></div>`;
+
+C.altitude_ff = ()=>`
+  <div class="section-title">Setup requirements for Frequent Flyer programs</div>
+  <div class="info-card blue"><div class="ic-label">All three of these must be in place</div><div class="ic-text">1. Customer must be a member of the relevant Frequent Flyer Program (Qantas or Velocity)<br>2. Customer must have provided their valid Frequent Flyer membership number to Westpac<br>3. The first and last name on the Frequent Flyer membership must exactly match the name on the Westpac card account</div></div>
+  <div class="section-title">Name or membership number mismatch</div>
+  <div class="info-card amber"><div class="ic-label">Points earned but not transferred</div><div class="ic-text">If the membership number is missing or names don't match, points will show on the statement as "earned" but NOT "transferred". If the customer corrects the issue within <strong>4 months</strong> of opting into the program, the previously earned points will be transferred. After 4 months — the points are <strong>forfeited</strong>.</div></div>
+  <div class="section-title">Fees</div>
+  <div class="rule-list">
+    <div class="rule-row"><div class="rule-dot rd-amber"></div>Westpac may charge a fee for earning Frequent Flyer Points — disclosed in the Financial Table</div>
+    <div class="rule-row"><div class="rule-dot rd-amber"></div>Membership of the Frequent Flyer Program itself may also have fees — governed by the program's own T&Cs</div>
+  </div>
+  <div class="section-title">Westpac's responsibility — what they're NOT liable for</div>
+  <div class="info-card red"><div class="ic-label">Westpac has no responsibility for Frequent Flyer Programs</div><div class="ic-text">If a Frequent Flyer Program changes, ends, or ceases operations — Westpac is not responsible for the impact. They make no warranty about Frequent Flyer Points and are not liable for any losses arising from program changes or closure.</div></div>
+  <div class="section-title">Checking Frequent Flyer Points balance</div>
+  <div class="rule-list">
+    <div class="rule-row"><div class="rule-dot rd-blue"></div>Direct customer to contact their Frequent Flyer Program directly (Qantas or Velocity) — Westpac cannot check this for them</div>
+    <div class="rule-row"><div class="rule-dot rd-blue"></div>Westpac card statements will show Frequent Flyer Points earned and credited to the account for each period</div>
+  </div>`;
+
+C.altitude_manage = ()=>`
+  <div class="section-title">When do Altitude Points expire?</div>
+  <div class="two-col">
+    <div class="col-card not-liable"><div class="col-hdr">✓ Points do NOT expire while</div><div class="col-item">Card Account is open</div><div class="col-item">Customer remains enrolled in Altitude Rewards</div></div>
+    <div class="col-card liable"><div class="col-hdr">⚠️ Points EXPIRE when</div><div class="col-item">Card Account is closed — customer must use within <strong>90 days</strong></div><div class="col-item">Account Holder passes away (see below)</div></div>
+  </div>
+  <div class="section-title">Deceased estate</div>
+  <div class="info-card amber"><div class="ic-label">Death of Account Holder</div><div class="ic-text">Altitude Points expire upon the Account Holder's death. However, if Westpac is notified within <strong>6 months</strong> of the death, they will convert remaining points to a statement credit using the "Altitude Card Fee rebate" rate. Contact the Altitude Rewards Centre (1300 887 820) to find out the current conversion rate.</div></div>
+  <div class="section-title">Missing points</div>
+  <div class="steps">
+    <div class="step-row"><div class="step-num">1</div><div class="step-text">Ask customer to check their card statement and points record carefully first</div></div>
+    <div class="step-row"><div class="step-num">2</div><div class="step-text">If still missing — must contact us within <strong>6 months</strong> of the relevant purchase date</div></div>
+    <div class="step-row"><div class="step-num">3</div><div class="step-text">May be asked to provide sale receipts or the relevant card statement</div></div>
+    <div class="step-row"><div class="step-num">4</div><div class="step-text">Refer to Altitude Rewards Centre: <strong>1300 887 820</strong></div></div>
+  </div>
+  <div class="section-title">Checking points balance</div>
+  <div class="rule-list">
+    <div class="rule-row"><div class="rule-dot rd-green"></div>Altitude Rewards Account — via Online Banking or Westpac App</div>
+    <div class="rule-row"><div class="rule-dot rd-green"></div>Call Altitude Rewards Centre: 1300 887 820</div>
+    <div class="rule-row"><div class="rule-dot rd-blue"></div>Card statement shows: points balance, points earned and redeemed, and Frequent Flyer Points earned and credited</div>
+    <div class="rule-row"><div class="rule-dot rd-amber"></div>For Frequent Flyer Points balance — direct customer to their program directly (Qantas/Velocity)</div>
+  </div>`;
+
+C.disputes = ()=>`
+  <div class="info-card red"><div class="ic-label">Lost or stolen card / PIN compromised — immediate action</div><div class="ic-text">Contact us IMMEDIATELY — failing to do so may make them liable for losses. Australia: <strong>1300 651 089</strong> · Overseas: <strong>+61 2 9155 7700</strong>. We will block the Card Account and investigate.</div></div>
+  <div class="section-title">Unauthorised transactions</div>
+  <div class="steps">
+    <div class="step-row"><div class="step-num">1</div><div class="step-text">Customer contacts us immediately</div></div>
+    <div class="step-row"><div class="step-num">2</div><div class="step-text">We block the Card Account</div></div>
+    <div class="step-row"><div class="step-num">3</div><div class="step-text">We investigate</div></div>
+  </div>
+  <div class="section-title">Merchant disputes (unhappy with goods/services or incorrect charge)</div>
+  <div class="steps">
+    <div class="step-row"><div class="step-num">1</div><div class="step-text"><strong>Customer tries to resolve directly with the merchant first</strong></div></div>
+    <div class="step-row"><div class="step-num">2</div><div class="step-text">If unresolved — additional rights may exist under Mastercard or Visa dispute process</div></div>
+    <div class="step-row"><div class="step-num">3</div><div class="step-text">Customer calls <strong>132 032</strong> or uses "Dispute this transaction" in Online Banking</div></div>
+    <div class="step-row"><div class="step-num">4</div><div class="step-text">If we ask for further information — must provide it <strong>within 14 days</strong></div></div>
+  </div>
+  <div class="info-card amber"><div class="ic-label">Time matters</div><div class="ic-text">Ability to obtain a refund under Mastercard/Visa rules may be restricted depending on how quickly we're notified. Always encourage the customer to notify us as soon as possible. More info: westpac.com.au/fraud-disputes-lost-stolen-cards</div></div>`;
+
+C.liability = ()=>`
+  <div class="section-title">Liability for unauthorised transactions</div>
+  <div class="two-col">
+    <div class="col-card liable">
+      <div class="col-hdr">⚠️ Customer MAY be liable</div>
+      <div class="col-item">Contributed to the loss through fraud</div>
+      <div class="col-item">Failed to protect PIN as required</div>
+      <div class="col-item">Left card in an ATM</div>
+      <div class="col-item">Unreasonably delayed telling us about misuse, loss, theft, or PIN breach</div>
+    </div>
+    <div class="col-card not-liable">
+      <div class="col-hdr">✓ Customer is NOT liable</div>
+      <div class="col-item">Clearly did not contribute to the loss</div>
+      <div class="col-item">Loss due to Westpac fraud or negligence</div>
+      <div class="col-item">Transactions charged more than once</div>
+      <div class="col-item">Unauthorised transactions AFTER notifying us</div>
+      <div class="col-item">Transactions using card number + expiry only (no card, PIN, or password)</div>
+      <div class="col-item">System malfunction where transaction didn't complete as instructed</div>
+    </div>
+  </div>
+  <div class="section-title">Key limits on liability</div>
+  <div class="rule-list">
+    <div class="rule-row"><div class="rule-dot rd-green"></div>Never liable for losses exceeding the credit limit</div>
+    <div class="rule-row"><div class="rule-dot rd-green"></div>Never liable for losses exceeding the daily transaction limit in one day</div>
+    <div class="rule-row"><div class="rule-dot rd-amber"></div>PIN transaction where it's unclear if customer contributed — liability capped at <strong>$150</strong></div>
+    <div class="rule-row"><div class="rule-dot rd-amber"></div>For handwritten signature transactions — customer must also adequately protect the card itself</div>
+  </div>`;
+
+C.closing = ()=>`
+  <div class="section-title">Customer closing their own account</div>
+  <div class="steps">
+    <div class="step-row"><div class="step-num">1</div><div class="step-text">Request via Online Banking or by contacting us</div></div>
+    <div class="step-row"><div class="step-num">2</div><div class="step-text">Cards cancelled immediately</div></div>
+    <div class="step-row"><div class="step-num">3</div><div class="step-text">Account closes once balance is repaid in full</div></div>
+  </div>
+  <div class="info-card gold"><div class="ic-label">Altitude Points on account closure</div><div class="ic-text">Customer has <strong>90 days</strong> from account closure to use their Altitude Points. After 90 days, remaining points expire. For Frequent Flyer Points — contact the relevant program directly as their rules apply.</div></div>
+  <div class="section-title">When Westpac can cancel / block without notice</div>
+  <div class="rule-list">
+    <div class="rule-row"><div class="rule-dot rd-red"></div>Suspected fraud or action needed to prevent losses</div>
+    <div class="rule-row"><div class="rule-dot rd-red"></div>Regulatory risk management</div>
+    <div class="rule-row"><div class="rule-dot rd-red"></div>Account use has caused harm to another person (including financial abuse)</div>
+    <div class="rule-row"><div class="rule-dot rd-red"></div>Customer is in default</div>
+  </div>
+  <div class="section-title">What counts as default</div>
+  <div class="rule-list">
+    <div class="rule-row"><div class="rule-dot rd-red"></div>Missed required payments when due</div>
+    <div class="rule-row"><div class="rule-dot rd-red"></div>Customer becomes bankrupt or enters arrangement with creditors</div>
+    <div class="rule-row"><div class="rule-dot rd-red"></div>Customer/Additional Cardholder fails to comply with law, engages in misleading conduct, or uses card for non-approved purpose — AND materially impacts Westpac's risk</div>
+  </div>
+  <div class="info-card red"><div class="ic-label">Default consequences</div><div class="ic-text">Westpac may require immediate repayment of the entire balance, plus reasonable enforcement expenses. Normally 30 days written notice is given first — but not always (e.g. fraud suspected, cannot locate customer, court authorises).</div></div>
+  <div class="section-title">What customer must do after closure</div>
+  <div class="rule-list">
+    <div class="rule-row"><div class="rule-dot rd-blue"></div>Destroy the card securely</div>
+    <div class="rule-row"><div class="rule-dot rd-red"></div>Cancel all recurring payments with merchants directly — they remain liable for uncancelled ones</div>
+    <div class="rule-row"><div class="rule-dot rd-amber"></div>Fees, charges, and interest continue until balance is paid off and account fully closed</div>
+  </div>`;
+
+C.changes = ()=>`
+  <div class="section-title">What Westpac can change</div>
+  <div class="rule-list">
+    <div class="rule-row"><div class="rule-dot rd-blue"></div>Interest rates and how interest is calculated</div>
+    <div class="rule-row"><div class="rule-dot rd-blue"></div>Payment requirements (amount, calculation, frequency)</div>
+    <div class="rule-row"><div class="rule-dot rd-blue"></div>Fees (new fees, amounts, timing)</div>
+    <div class="rule-row"><div class="rule-dot rd-blue"></div>Credit or transaction limits (including reductions)</div>
+  </div>
+  <div class="section-title">Notice periods</div>
+  <table class="balance-table">
+    <tr class="bt-head"><td>Type of change</td><td>Notice</td></tr>
+    <tr class="bt-row"><td>Annual Percentage Rate changes</td><td>Same day or before change happens</td></tr>
+    <tr class="bt-row"><td>Fee changes (unfavourable)</td><td>At least 30 days advance notice</td></tr>
+    <tr class="bt-row"><td>Changes reducing obligations or extending time</td><td>No later than next statement after change</td></tr>
+    <tr class="bt-row"><td>Any other unfavourable changes</td><td>At least 30 days advance notice</td></tr>
+  </table>
+  <div class="section-title">Altitude program changes</div>
+  <div class="info-card gold"><div class="ic-label">30 days notice for Altitude changes — except</div><div class="ic-text">Changes to earn rates, fees, redemption rates, or available rewards. Notice is NOT required if: immediate security need, regulatory/law change, Frequent Flyer Program change, change is non-material, or change benefits the customer. Program can also be terminated with 90 days notice and pro-rata fee refund.</div></div>
+  <div class="info-card amber"><div class="ic-label">Exceptions — less or no notice</div><div class="ic-text">Westpac may make unfavourable changes with less or no notice where managing a material and immediate risk (e.g. customer in default or account inactive for 6 months), or immediately restoring system/account security.</div></div>`;
+
+C.complaints = ()=>`
+  <div class="section-title">Complaint escalation path</div>
+  <div class="steps">
+    <div class="step-row"><div class="step-num">1</div><div class="step-text"><strong>Resolve at first point of contact</strong> — always the goal</div></div>
+    <div class="step-row"><div class="step-num">2</div><div class="step-text">If unresolved — <strong>Customer Solutions Team</strong>: 132 032</div></div>
+    <div class="step-row"><div class="step-num">3</div><div class="step-text">If still unresolved — <strong>AFCA</strong> (free, independent): 1800 931 678 · afca.org.au</div></div>
+  </div>
+  <div class="info-card green"><div class="ic-label">Financial hardship — refer to Westpac Assist immediately</div><div class="ic-text">Phone: <strong>1800 067 497</strong> · westpac.com.au/westpacassist<br>Options: extend term and reduce payments · extend term and delay payments · defer payments for a set time</div></div>
+  <div class="section-title">Other regulatory contacts</div>
+  <div class="contact-grid">
+    <div class="contact-card"><div class="cc-name">ASIC</div><div class="cc-num">1300 300 630</div><div class="cc-note">Regulatory complaints and rights info</div></div>
+    <div class="contact-card"><div class="cc-name">OAIC (privacy)</div><div class="cc-num">1300 363 992</div><div class="cc-note">Must complain to Westpac first, allow 30 days</div></div>
+  </div>`;
+
+C.glossary = ()=>`
+  <div class="section-title">Credit Card T&C Terms</div>
+  <div class="rule-list">
+    <div class="rule-row"><div class="rule-dot rd-blue"></div><span><strong>Annual Percentage Rate (APR)</strong> — Annual interest rate applied to a balance category. Varies by card and category.</span></div>
+    <div class="rule-row"><div class="rule-dot rd-blue"></div><span><strong>Balance Transfer</strong> — A balance moved from another credit card to this Westpac account. Promotional rates may apply. Not available on Westpac Lite.</span></div>
+    <div class="rule-row"><div class="rule-dot rd-blue"></div><span><strong>Cash Advance</strong> — Cash withdrawals, foreign currency/crypto/traveller's cheques, money orders, bill payments over the counter via third parties, gambling merchants, fund transfers. Higher rate applies. Not offered on Westpac Lite.</span></div>
+    <div class="rule-row"><div class="rule-dot rd-blue"></div><span><strong>Financial Table</strong> — Document attached to the letter of offer. Contains actual rates, fees, and limits for the customer's specific product.</span></div>
+    <div class="rule-row"><div class="rule-dot rd-blue"></div><span><strong>Government Related Payment</strong> — Payment to/from local, state, or federal government or related agencies (ATO, Australia Post, motor vehicle registries). Does NOT earn Altitude Points.</span></div>
+    <div class="rule-row"><div class="rule-dot rd-blue"></div><span><strong>Main Account Balance</strong> — Total card balance minus any SmartPlan Balance.</span></div>
+    <div class="rule-row"><div class="rule-dot rd-blue"></div><span><strong>Minimum Payment Due</strong> — 2% of closing balance or $10, whichever is greater. If balance &lt; $10, pay in full.</span></div>
+    <div class="rule-row"><div class="rule-dot rd-blue"></div><span><strong>Monthly Payment</strong> — Min payment on Main Account Balance + SmartPlan instalments. Must be paid to keep SmartPlans active.</span></div>
+    <div class="rule-row"><div class="rule-dot rd-blue"></div><span><strong>Monthly Payment Balance</strong> — Main Account Balance minus Balance Transfer Balance and PartPay Balance, plus SmartPlan instalments. Must be paid to keep interest free period when Balance Transfer, SmartPlan, or PartPay Card exists.</span></div>
+    <div class="rule-row"><div class="rule-dot rd-blue"></div><span><strong>SmartPlan</strong> — Instalment plan splitting a balance or purchase into monthly payments. Fees and rate disclosed at setup. Max 8 at once.</span></div>
+    <div class="rule-row"><div class="rule-dot rd-blue"></div><span><strong>Tokenised Credentials</strong> — Unique number by Visa/Mastercard representing the card. Some merchants use this, so recurring payments may continue after card reissue.</span></div>
+  </div>
+  <div class="divider"></div>
+  <div class="section-title">Altitude Rewards Terms</div>
+  <div class="rule-list">
+    <div class="rule-row"><div class="rule-dot rd-gold"></div><span><strong>Account Holder</strong> — The person who opens the Card Account. Only they can redeem Altitude Points.</span></div>
+    <div class="rule-row"><div class="rule-dot rd-gold"></div><span><strong>Altitude</strong> — The rewards programs operated by Altitude Rewards Pty Ltd: Altitude Rewards, Altitude Qantas, and Altitude Velocity.</span></div>
+    <div class="rule-row"><div class="rule-dot rd-gold"></div><span><strong>Altitude Card</strong> — A Westpac branded Altitude credit card (including linked PartPay Cards). Applies to Platinum and Black cards.</span></div>
+    <div class="rule-row"><div class="rule-dot rd-gold"></div><span><strong>Frequent Flyer Program</strong> — An airline program (Qantas or Velocity/Virgin) through which Frequent Flyer Points can be redeemed for flights and other rewards.</span></div>
+    <div class="rule-row"><div class="rule-dot rd-gold"></div><span><strong>Point</strong> — A rewards point earned under Altitude Rewards, Altitude Qantas, or Altitude Velocity. Points have no cash value and cannot be transferred to another person.</span></div>
+    <div class="rule-row"><div class="rule-dot rd-gold"></div><span><strong>Pay with Points</strong> — Feature allowing Altitude Points to be used to receive a cashback credit after an eligible purchase. Credits do not count toward payment obligations.</span></div>
+  </div>`;
+
+// ── SOURCE REFERENCES ────────────────────────────────────────────────────────
+const SOURCES = {
+  card_compare:    'Westpac Key Facts Sheet — westpac.com.au/personal-banking/credit-cards/credit-cards-fact-sheet/ (2 March 2026)',
+  contacts:        'Westpac Credit Card Terms & Conditions, 27 June 2024 — pp. 1–2 (We\'re here to help)',
+  pin:             'Westpac Credit Card T&Cs — Clause 2.0, pp. 7–8 (Your Card and PIN)',
+  using:           'Westpac Credit Card T&Cs — Clause 3.0, pp. 8–12 (Using your Card)',
+  recurring:       'Westpac Credit Card T&Cs — Clause 3.3, p. 9 (Recurring payments)',
+  foreign:         'Westpac Credit Card T&Cs — Clause 3.4, p. 10 (Foreign transactions)',
+  interest:        'Westpac Credit Card T&Cs — Clauses 5.1–5.4, pp. 13–17 (Fees and interest)',
+  intfree:         'Westpac Credit Card T&Cs — Clause 5.2, pp. 13–15 (Interest free period)',
+  payments:        'Westpac Credit Card T&Cs — Clause 6.0, pp. 18–19 (Paying your Card Account)',
+  smartplan:       'Westpac Credit Card T&Cs — Clause 7.0, pp. 19–21 (Westpac SmartPlan)',
+  altitude_cards:  'Westpac Altitude card pages — westpac.com.au/personal-banking/credit-cards/reward/ (May 2026)',
+  altitude_earn:   'Westpac Altitude T&Cs, 12 June 2024 — Clauses 3.1–3.4 (Earning Points)',
+  altitude_redeem: 'Westpac Altitude T&Cs, 12 June 2024 — Clause 4.0 (Redeeming Altitude Points)',
+  altitude_ff:     'Westpac Altitude T&Cs, 12 June 2024 — Clauses 3.3 & 5.0 (Frequent Flyer Programs)',
+  altitude_manage: 'Westpac Altitude T&Cs, 12 June 2024 — Clause 6.0 (Managing your Points)',
+  disputes:        'Westpac Credit Card T&Cs — Clause 8.1, pp. 22–23 (Security problems and transaction disputes)',
+  liability:       'Westpac Credit Card T&Cs — Clause 8.1, p. 23 (Liability) & ePayments Code (ASIC — asic.gov.au)',
+  closing:         'Westpac Credit Card T&Cs — Clause 9.0, pp. 24–25 (Closing your Card Account or cancelling your Card)',
+  changes:         'Westpac Credit Card T&Cs — Clause 10.0, pp. 26–27 (Our additional obligations and rights)',
+  complaints:      'Westpac Credit Card T&Cs — Credit Guide, pp. 31–33 & Information Statement, pp. 34–37',
+  glossary:        'Westpac Credit Card T&Cs — Clause 11.0, pp. 28–30 & Altitude T&Cs — Clause 12, pp. 12–13',
+};
+
+// ── AI SYSTEM PROMPT ─────────────────────────────────────────────────────────
+const SYS = `You are a Westpac credit card specialist assistant for Foundever call centre agents. Agents are on LIVE CALLS and need instant, accurate, actionable guidance. Be direct. Never hedge unnecessarily.
+
+RESPOND ONLY with valid JSON — no markdown, no code fences, no extra text:
+{"direct":"<one-sentence bottom-line answer the agent can act on immediately>","steps":["<specific action step 1>","<specific action step 2>","<step 3 if needed>"],"tell_customer":"<exact suggested wording the agent can say to the customer right now>","ref":"<exact clause or document reference>"}
+
+KEY RULES — WESTPAC CREDIT CARDS:
+
+INTEREST (Clause 5.1–5.3, T&Cs 27 June 2024):
+- Interest accrues DAILY on outstanding balances, applied at end of each statement period
+- Formula: daily balance x (Annual Rate / 365), summed across the period
+- WHY INTEREST APPEARS ON STATEMENT AFTER PAYING IN FULL: The customer likely did not pay the previous month's closing (or Monthly Payment) balance in full. Interest accrues between that statement date and when they actually paid. That accrued interest posts to the NEXT statement. Direct the agent to look 2 months back at the previous statement to check if it was fully paid.
+- WHY INTEREST APPEARS ON 2 CONSECUTIVE STATEMENTS: Same cause — the previous period's unpaid balance generated interest that was charged in that period AND the gap between statement and payment also generated interest, both appearing across 2 statements. Once the customer pays the full closing balance on time, the interest free period restores and no further interest applies to purchases.
+- Purchase rates: Altitude Platinum / Altitude Black / Low Fee = 20.99% p.a.; Low Rate = 13.74% p.a.; Westpac Lite = 9.90% p.a.
+- Cash advance rate (not Westpac Lite): 21.99% p.a. — NO interest free period, interest starts from day of transaction
+- PartPay balance = 0% interest
+- Interest-free periods: Altitude Platinum/Black/Lite = up to 45 days; Low Fee/Low Rate = up to 55 days
+
+INTEREST FREE PERIOD (Clause 5.2):
+- Maintained by paying CLOSING BALANCE in full by due date each month (if no BT/SmartPlan)
+- If customer HAS a Balance Transfer, SmartPlan, or PartPay Card: pay MONTHLY PAYMENT BALANCE instead
+- If NOT paid in full: interest applies to ALL purchases including brand new ones, from day of transaction
+- New IFP starts next time the required amount is paid in full by due date
+
+PAYMENTS (Clause 6.0):
+- Minimum payment: 2% of closing balance or $10, whichever is greater. Balance under $10: pay in full.
+- Refunds, cashback, reversals, prior-month overpayments do NOT count toward minimum payment
+- PartPay payments credited between statement date and due date DO count toward minimum payment
+- Missed Payment Fee applies to all cards EXCEPT Westpac Lite ($0). Current fee = $20 per statement cycle (increased from $15 on 30 April 2026)
+- Payment order: highest APR first → within same rate: interest charges first, then fees, then transactions, all oldest first
+- Cannot pay: refer to Westpac Assist 1800 067 497 immediately
+
+DISPUTES & FRAUD (Clause 8.1):
+- Lost/stolen card or PIN compromised: call IMMEDIATELY — 1300 651 089 (AU) or +61 2 9155 7700 (overseas). Delay may make customer liable.
+- Unauthorised transactions: call immediately, we block the account and investigate
+- Merchant dispute (wrong charge, unsatisfactory goods): customer must try merchant first, THEN call 132 032 or use 'Dispute this transaction' in Online Banking
+- Must supply info we request within 14 days or dispute rights may be limited
+- Time is critical — Mastercard/Visa dispute rights reduce the longer the customer waits
+
+LIABILITY (Clause 8.1 / ePayments Code):
+- NOT liable: did not contribute to loss, Westpac fraud or negligence, transaction charged twice, unauthorised AFTER reporting, card number + expiry only used (no PIN/card/password), system malfunction
+- MAY be liable: fraud or PIN negligence, left card in ATM, unreasonable delay in reporting
+- $150 liability cap if PIN transaction and unclear whether customer contributed
+- Never liable for amount exceeding credit limit or daily transaction limit in one day
+
+SMARTPLAN (Clause 7.0):
+- Set up only via Online Banking (desktop or Westpac App). Takes up to 2 business days.
+- Maximum 8 active SmartPlans simultaneously
+- MUST update Autopay to "Monthly Payment Balance" or "Monthly Payment" BEFORE setting up — cannot proceed otherwise
+- Missed instalment: Westpac may cancel the plan; setup fees are NOT refunded
+- Can cancel any time via Online Banking
+- Does NOT change the credit limit
+
+CLOSING & DEFAULT (Clause 9.0):
+- Customer closes via Online Banking or by calling
+- Cards cancelled immediately upon request; account closes once balance paid in full
+- Default events: missed payments, bankruptcy, law breach, misleading conduct, card used for business
+- After closure: customer must destroy card AND cancel recurring payments with each merchant directly
+- Recurring payments can continue even after cancellation — customer is still liable until they cancel with the merchant
+- Fees and interest continue until balance is zero and account fully closed
+
+ALTITUDE POINTS — EARNING (Altitude T&Cs Clause 3, 12 June 2024):
+- NOT earned on: fees, interest, cash advances, balance transfers, BPAY / Post Billpay, Government Related Payments (ATO, Australia Post, motor registries, local/state/federal government), declined PartPay purchases
+- Government Related Payment: any payment to local, state or federal government or related agency. Westpac classifies by card scheme merchant code.
+- Points SUSPENDED (cannot earn OR redeem) when: minimum payment not paid on time, card/account blocked or closed, fraud on account, card reported lost/stolen, business use, credit limit exceeded, any T&C breach
+- Points deducted when a transaction is refunded or reversed
+- Altitude Rewards points: awarded when transaction posts to account, appear on monthly statement
+- Qantas/Velocity points (regular): credited to FF account MONTHLY (once per statement cycle, NOT instantly after each transaction)
+- Bonus points: credited within 12 WEEKS of meeting the spend threshold
+
+ALTITUDE POINTS — MANAGING (Altitude T&Cs Clause 6):
+- Do NOT expire while account is open and enrolled in Altitude Rewards
+- Account closed: must use points within 90 DAYS or they expire
+- Missing points: customer must report within 6 MONTHS of purchase date. Call Altitude Rewards Centre: 1300 887 820
+- Deceased estate: notify Westpac within 6 months of death to convert remaining points to statement credit
+
+FREQUENT FLYER — SETUP & NAME (Altitude T&Cs Clause 3.3):
+- Must: be a FF program member + provide valid membership number + have EXACTLY matching first and last name
+- Name mismatch: points show as 'earned' but NOT 'transferred'. Customer has 4 MONTHS to correct the name/number. After 4 months = points permanently forfeited.
+- Westpac has NO responsibility for changes to or closure of FF programs
+
+ALTITUDE BONUS OFFERS:
+- NOT available if customer held ANY Altitude Platinum or Black card (Rewards, Qantas, or Velocity) in the LAST 24 MONTHS
+- Miss Year 1 spend threshold: forfeit Year 1 bonus only. Year 2 bonus still available if they meet criteria.
+- Bonus points credited within 12 weeks of meeting spend. If under 12 weeks — advise customer to wait.
+
+CARD COMPARISON (current as of May 2026 — westpac.com.au/personal-banking/credit-cards/card-fee-changes/):
+- Altitude Platinum: $175/yr, 20.99% purchase, 21.99% cash advance interest rate, 3.5% cash advance fee, 45 days IF, $3k min credit limit, $30k min income, 3% FX fee, $20 missed payment fee
+- Altitude Black: $295/yr, 20.99%, 21.99% cash advance interest rate, 3.5% cash advance fee, 45 days IF, $6k min credit limit, $75k min income, 3% FX fee, $20 missed payment fee
+- Low Fee Card: $0–$30/yr (waived if $5k+ eligible spend/year), 20.99%, 21.99% cash advance interest rate, 3.5% cash advance fee, 55 days IF, $500 min credit limit, 3% FX fee, $20 missed payment fee
+- Low Rate Card: $59/yr NOW — changing to $7/month ($84/yr) from 29 June 2026, 13.74%, 21.99% cash advance interest rate, 3.5% cash advance fee, 55 days IF, $500 min credit limit, 3% FX fee, $20 missed payment fee
+- Westpac Lite: $9/month ($108/yr), 9.90%, NO cash advances or balance transfers, 45 days IF, $1k min credit limit, $0 missed payment fee, NO foreign transaction fee (zero FX fee — key selling point, including online shopping)
+
+FOREIGN TRANSACTIONS (Clause 3.4):
+- 3% foreign transaction fee on ALL Westpac credit cards EXCEPT Westpac Lite
+- Westpac Lite: ZERO foreign transaction fee — including online shopping with overseas merchants (key selling point)
+- 3% applies to: Altitude Platinum, Altitude Black, Low Fee Card, Low Rate Card
+- Applies to: any transaction in foreign currency, AND any transaction processed outside Australia (even if customer is physically in Australia e.g. buying from an overseas website)
+- Customer not always aware the merchant processes offshore
+- Conversion by Visa/Mastercard at their rate; Dynamic Currency Conversion = merchant sets rate, FX fee may STILL apply
+
+RECURRING PAYMENTS (Clause 3.3):
+- Customer must cancel directly with the merchant before the next payment date
+- Tokenised credentials: reissuing a card may NOT stop recurring payments — merchant may still charge the new card
+- After account closure: customer remains liable for uncancelled recurring payments
+
+CONTACTS:
+- General 24/7 Australia: 1300 651 089
+- Overseas: +61 2 9155 7700
+- Customer Solutions & Complaints: 132 032
+- Westpac Assist (hardship): 1800 067 497
+- Altitude Rewards Centre: 1300 887 820
+- AFCA (after Westpac escalation): 1800 931 678
+
+If the question is outside Westpac credit card scope, set direct to the most relevant guidance you can give and ref to "Outside T&C scope — escalate to relevant team".`;
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+const S = { screen:'home', topicId:null, search:'', aiState:'idle', aiResult:null, aiError:null };
+
+// ── FULL-TEXT SEARCH INDEX ────────────────────────────────────────────────────
+let IDX = null;
+
+function buildIdx() {
+  if (IDX) return;
+  IDX = {};
+  TOPICS.forEach(t => { IDX[t.id] = C[t.id] ? stripHtml(C[t.id]()) : ''; });
+}
+
+function stripHtml(h) {
+  return h.replace(/<br\s*\/?>/gi,' ').replace(/<[^>]+>/g,' ')
+    .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#\d+;/g,'')
+    .replace(/\s+/g,' ').trim();
+}
+
+function getSnippets(text, q, maxSnips=3, ctx=95) {
+  const lower=text.toLowerCase(), lq=q.toLowerCase(), snips=[];
+  let pos=0, lastEnd=-1;
+  while(snips.length<maxSnips){
+    const idx=lower.indexOf(lq,pos); if(idx===-1) break;
+    const s=Math.max(0,idx-ctx), e=Math.min(text.length,idx+lq.length+ctx);
+    if(s<lastEnd){pos=idx+lq.length;continue;}
+    lastEnd=e;
+    const raw=(s>0?'…':'')+text.slice(s,e)+(e<text.length?'…':'');
+    const esc=escHtml(raw);
+    const hi=esc.replace(new RegExp(escHtml(q).replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'),m=>`<mark>${m}</mark>`);
+    snips.push(hi); pos=idx+lq.length;
+  }
+  return snips;
+}
+
+// ── QUESTION DETECTION ────────────────────────────────────────────────────────
+function isQuestion(q) {
+  const w = q.trim().split(/\s+/);
+  if (q.includes('?')) return true;
+  if (w.length >= 5) return true;
+  const qw = ['why','how','what','when','can','is','are','does','will','should','would','could','has','have','did','do','if','customer','agent','explain','tell','check'];
+  return qw.includes(w[0].toLowerCase());
+}
+
+// ── AI CALL ───────────────────────────────────────────────────────────────────
+async function callAI(question) {
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        system: SYS,
+        messages:[{role:'user', content: question}]
+      })
+    });
+    const data = await resp.json();
+    const raw  = (data.content?.[0]?.text || '').replace(/^```json\s*/,'').replace(/```$/,'').trim();
+    S.aiResult = JSON.parse(raw);
+    S.aiState  = 'done';
+  } catch(e) {
+    S.aiState = 'error';
+    S.aiError = 'Could not generate an answer right now. Use keyword search or browse the topics below.';
+  }
+  render();
+  const el = document.getElementById('srch');
+  if (el) { el.focus(); el.setSelectionRange(S.search.length, S.search.length); }
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+const topic   = id => TOPICS.find(t => t.id === id);
+const escHtml = s  => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function render() {
+  document.getElementById('app').innerHTML = `
+    <div class="phdr">
+      <div class="brand-row">
+        <div class="logomark">F</div>
+        <div><div class="brand-name">Foundever</div><div class="brand-sub">Westpac Credit Card Guide</div></div>
+      </div>
+      <a class="hub-link" href="agent-training-hub.html">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        Training Hub
+      </a>
+    </div>
+    <div class="shell">
+      <div class="contacts-bar">
+        <span class="cb-label">Key contacts</span>
+        <div class="cb-item"><span class="cb-name">Australia 24/7</span><span class="cb-num">1300 651 089</span></div>
+        <div class="cb-item"><span class="cb-name">Overseas</span><span class="cb-num">+61 2 9155 7700</span></div>
+        <div class="cb-item"><span class="cb-name">Solutions</span><span class="cb-num">132 032</span></div>
+        <div class="cb-item"><span class="cb-name">Altitude Rewards</span><span class="cb-num">1300 887 820</span></div>
+        <div class="cb-item"><span class="cb-name">Hardship</span><span class="cb-num">1800 067 497</span></div>
+        <div class="cb-item"><span class="cb-name">AFCA</span><span class="cb-num">1800 931 678</span></div>
+      </div>
+      ${S.screen === 'home' ? renderHome() : renderTopic()}
+    </div>`;
+}
+
+function renderHome() {
+  const q = S.search.toLowerCase().trim();
+
+  // Determine mode for the hint pill
+  const showAI  = q.length > 2 && isQuestion(q);
+  const showKW  = q.length > 0 && !showAI;
+  const modeTag = showAI
+    ? `<span class="mpill mpill-ai">✦ AI Answer</span> Answering: "${escHtml(S.search)}"`
+    : showKW
+    ? `<span class="mpill mpill-kw">Search</span> Showing results for "${escHtml(S.search)}"`
+    : '';
+
+  let html = `
+    <div class="home-head">
+      <h1>Westpac Credit Card Guide</h1>
+      <p>Type a <strong>keyword</strong> to search, or ask a <strong>full question</strong> to get a direct AI answer — e.g. "why is there interest on 2 statements?"</p>
+    </div>
+    <div class="search-wrap"><input id="srch" class="search" type="text" placeholder='Search or ask — e.g. "refund" or "why is there interest on my statement?"' value="${escHtml(S.search)}" oninput="doSearch(this.value)" autocomplete="off" spellcheck="false"></div>
+    ${modeTag ? `<div class="mode-hint">${modeTag}</div>` : ''}`;
+
+  if (!q) {
+    // ── BROWSE: categorised grid ──────────────────────────────────────────────
+    const cats = [...new Set(TOPICS.map(t => t.cat))];
+    for (const cat of cats) {
+      html += `<div class="cat-label">${cat}</div><div class="topic-grid" style="border-top:none;padding-top:.3rem">`;
+      html += TOPICS.filter(t => t.cat === cat).map(t => `
+        <div class="topic-card" onclick="goTopic('${t.id}')">
+          <div class="tc-icon" style="background:${t.bg}">${t.icon}</div>
+          <div class="tc-lbl">${escHtml(t.label)}</div>
+          <div class="tc-desc">${escHtml(t.desc)}</div>
+          <div class="tc-clause">${escHtml(t.clause)}</div>
+        </div>`).join('');
+      html += `</div>`;
+    }
+    return html;
+  }
+
+  // ── AI ANSWER MODE ────────────────────────────────────────────────────────
+  if (showAI) {
+    html += `<div class="ai-wrap">`;
+
+    if (S.aiState === 'loading') {
+      html += `<div class="ai-loading"><div class="ai-spinner"></div> Getting answer from knowledge base…</div>`;
+
+    } else if (S.aiState === 'error') {
+      html += `<div class="ai-error">⚠️ ${escHtml(S.aiError)}</div>`;
+
+    } else if (S.aiState === 'done' && S.aiResult) {
+      const r = S.aiResult;
+      const steps = (r.steps || []).map((s,i) =>
+        `<div class="ai-step-row"><div class="ai-num">${i+1}</div><div>${escHtml(s)}</div></div>`).join('');
+      html += `
+        <div class="ai-card">
+          <div class="ai-card-head"><span class="ai-head-lbl">✦ AI Answer — based on Westpac T&Cs & Altitude Terms</span></div>
+          <div class="ai-card-body">
+            <div class="ai-sec">Direct answer</div>
+            <div class="ai-direct">${escHtml(r.direct || '')}</div>
+            ${steps ? `<div class="ai-sec">Steps for the agent</div><div class="ai-steps">${steps}</div>` : ''}
+            ${r.tell_customer ? `<div class="ai-sec">Suggested wording</div><div class="ai-tell">${escHtml(r.tell_customer)}</div>` : ''}
+            <div class="ai-ref">📄 ${escHtml(r.ref || 'Westpac Credit Card T&Cs, 27 June 2024')}</div>
+          </div>
+        </div>`;
+    }
+
+    html += `</div>`;
+
+    // Also show keyword results underneath so the agent can dive deeper
+    buildIdx();
+    const related = TOPICS.filter(t =>
+      S.search.toLowerCase().split(/\s+/).some(w => w.length > 3 && (
+        t.label.toLowerCase().includes(w) || t.tags.some(g=>g.includes(w)) || (IDX[t.id] && IDX[t.id].includes(w))
+      ))
+    ).slice(0, 4);
+
+    if (related.length) {
+      html += `<div class="search-count" style="margin-top:.25rem"><strong>Related topics</strong></div>
+        <div class="search-results">
+          ${related.map(t => `<div class="search-result" onclick="goTopic('${t.id}')">
+            <div class="sr-top">
+              <div class="sr-icon" style="background:${t.bg}">${t.icon}</div>
+              <div class="sr-meta"><div class="sr-label">${escHtml(t.label)}</div><div class="sr-cat">${escHtml(t.cat)} · ${escHtml(t.clause)}</div></div>
+              <div class="sr-arrow">→</div>
+            </div></div>`).join('')}
+        </div>`;
+    }
+    return html;
+  }
+
+  // ── KEYWORD SEARCH MODE ───────────────────────────────────────────────────
+  buildIdx();
+  const results = TOPICS.map(t => {
+    const inLabel = t.label.toLowerCase().includes(q);
+    const inDesc  = t.desc.toLowerCase().includes(q);
+    const inTags  = t.tags.some(g => g.includes(q));
+    const inBody  = IDX[t.id] && IDX[t.id].toLowerCase().includes(q);
+    if (!inLabel && !inDesc && !inTags && !inBody) return null;
+    const snips = inBody ? getSnippets(IDX[t.id], q) : [];
+    const score = (inLabel?4:0)+(inDesc?2:0)+(inTags?1:0)+(inBody?0.5:0);
+    return {t, snips, score};
+  }).filter(Boolean).sort((a,b) => b.score-a.score);
+
+  if (!results.length) {
+    return html + `<div class="no-results">No results for "<strong>${escHtml(S.search)}</strong>" — try a different word, or type a full question for an AI answer.</div>`;
+  }
+
+  html += `<div class="search-count"><strong>${results.length}</strong> topic${results.length!==1?'s':''} contain "<strong>${escHtml(S.search)}</strong>"</div>
+    <div class="search-results">
+      ${results.map(({t,snips}) => `
+        <div class="search-result" onclick="goTopic('${t.id}')">
+          <div class="sr-top">
+            <div class="sr-icon" style="background:${t.bg}">${t.icon}</div>
+            <div class="sr-meta"><div class="sr-label">${escHtml(t.label)}</div><div class="sr-cat">${escHtml(t.cat)} · ${escHtml(t.clause)}</div></div>
+            <div class="sr-arrow">→</div>
+          </div>
+          ${snips.length ? `<div class="sr-snippets">${snips.map(s=>`<div class="sr-snippet">${s}</div>`).join('')}</div>` : ''}
+        </div>`).join('')}
+    </div>`;
+  return html;
+}
+
+function renderTopic() {
+  const t    = topic(S.topicId);
+  const body = C[S.topicId] ? C[S.topicId]() : '<div class="content"><p style="color:var(--t3)">Content coming soon.</p></div>';
+  const src  = SOURCES[S.topicId] || '';
+  return `
+    <div class="topic-hdr">
+      <div class="th-inner">
+        <div class="th-icon" style="background:${t.bg}">${t.icon}</div>
+        <div>
+          <div class="th-title">${escHtml(t.label)}</div>
+          <div class="th-clause">${escHtml(t.clause)} · ${escHtml(t.cat)}</div>
+        </div>
+      </div>
+      <button class="btn" onclick="goHome()" style="flex-shrink:0;align-self:flex-start">← Back</button>
+    </div>
+    <div class="content">${body}</div>
+    ${src ? `<div class="src-bar"><span class="src-icon">📄</span><span><strong>Source:</strong> ${escHtml(src)}</span></div>` : ''}`;
+}
+
+function goHome()    { S.screen='home'; render(); window.scrollTo(0,0); }
+function goTopic(id) { S.topicId=id; S.screen='topic'; render(); window.scrollTo(0,0); }
+function doSearch(v) {
+  S.search=v; S.aiResult=null; S.aiError=null;
+  const q = v.trim();
+  if (q.length > 2 && isQuestion(q) && S.aiState !== 'loading') {
+    S.aiState = 'loading';
+    render();
+    const el=document.getElementById('srch');
+    if(el){el.focus();el.setSelectionRange(v.length,v.length);}
+    callAI(q);
+  } else {
+    if (!q) S.aiState='idle';
+    render();
+    const el=document.getElementById('srch');
+    if(el){el.focus();el.setSelectionRange(v.length,v.length);}
+  }
+}
+
+render();
+</script>
+</body>
+</html>
