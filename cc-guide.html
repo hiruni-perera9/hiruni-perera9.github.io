@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Credit Card Statement Guide </title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style-ccguide.css">
+</head>
+<body>
+<div id="app"></div>
+<script>
+const TOPICS = [
+  {id:'interest',   icon:'📈', bg:'#fff1f0', label:'How Interest Accrues',        sub:'Daily accrual, when it posts to your statement'},
+  {id:'statement',  icon:'🧾', bg:'#ededff', label:'Reading a Statement',          sub:'Every section explained simply'},
+  {id:'balance_xfr',icon:'🔄', bg:'#e8f7f2', label:'Balance Transfers',            sub:'How they work and what to watch for'},
+  {id:'smartplan',  icon:'📋', bg:'#fffbf0', label:'SmartPlan',                    sub:'How it splits your balance and appears on your statement'},
+  {id:'partpay',    icon:'⚡', bg:'#fdf0ed', label:'PartPay',                      sub:'4 payments, 0% interest - what agents need to know'},
+];
+
+const S = {screen:'home', topicId:null};
+
+function escH(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+// ── CONTENT RENDERERS ────────────────────────────────────────────────────────
+
+function renderInterest(){return `
+  <div class="section-lbl">The core idea</div>
+  <div class="box blue"><div class="box-lbl">How it works</div>
+    Interest is calculated <strong>every single day</strong> on your outstanding balance, but it only <em>appears</em> on your statement at the end of each month. Miss a full payment - and you pay for every day the balance sat there.
+  </div>
+
+  <div class="box red">
+    <div class="box-lbl">Why interest can appear on two statements</div>
+
+    Interest on purchases can start building in the background -  
+    but it is <strong>only charged if the full closing balance is not paid by the due date</strong>.
+
+    <br><br>
+
+    <strong>What happens:</strong>
+      <ul>
+        <li>First statement → no interest shown yet</li>
+        <li>Customer does not pay full balance → interest-free period is lost</li>
+        <li>Next statement → main interest charge is added</li>
+        <li>If they then pay in full → a small additional interest charge may appear on the following statement</li>
+      </ul>
+
+      <br>
+
+      <strong>Why it happens:</strong><br>
+      Interest keeps building daily until the balance is fully paid,  
+      but it is only added to the account at statement time.
+
+      <br><br>
+
+      This delay can make it look like interest is being charged twice -  
+      but it’s actually <strong>one continuous interest period shown across two statements</strong>.
+  </div>
+
+  <div class="section-lbl">Daily interest formula</div>
+  <div style="background:var(--navy);border-radius:var(--rl);padding:1rem 1.25rem;text-align:center;margin-bottom:12px">
+    <div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:6px;letter-spacing:.08em;text-transform:uppercase">Daily interest charge</div>
+    <div style="font-size:16px;font-weight:700;color:#fff;letter-spacing:-.01em">Balance × (Annual Rate ÷ 365)</div>
+    <div style="font-size:12px;color:rgba(255,255,255,.55);margin-top:8px">Calculated daily on the <strong>outstanding balance each day </strong>(not a fixed amount)</div>
+  </div>
+
+  <div class="section-lbl">What actually happens step by step</div>
+  <!-- Timeline -->
+  <div style="position:relative;margin:1rem 0 2rem;padding:0 8px">
+    <div style="height:6px;background:linear-gradient(90deg,var(--green) 0%,var(--amber) 60%,var(--red) 100%);border-radius:99px;position:relative">
+      <!-- nodes -->
+      <div style="position:absolute;left:0;top:50%;transform:translateY(-50%)">
+        <div style="width:16px;height:16px;background:var(--green);border:3px solid #fff;border-radius:99px;box-shadow:0 0 0 1px var(--green)"></div>
+      </div>
+      <div style="position:absolute;left:40%;top:50%;transform:translateX(-50%) translateY(-50%)">
+        <div style="width:16px;height:16px;background:var(--amber);border:3px solid #fff;border-radius:99px;box-shadow:0 0 0 1px var(--amber)"></div>
+      </div>
+      <div style="position:absolute;left:70%;top:50%;transform:translateX(-50%) translateY(-50%)">
+        <div style="width:16px;height:16px;background:var(--red);border:3px solid #fff;border-radius:99px;box-shadow:0 0 0 1px var(--red)"></div>
+      </div>
+      <div style="position:absolute;right:0;top:50%;transform:translateY(-50%)">
+        <div style="width:16px;height:16px;background:#666;border:3px solid #fff;border-radius:99px;box-shadow:0 0 0 1px #ccc"></div>
+      </div>
+    </div>
+    <!-- labels below -->
+    <div style="display:flex;justify-content:space-between;margin-top:14px;font-size:10px">
+      <div style="text-align:center;width:60px">
+        <div style="font-weight:600;color:var(--green)">1 Mar</div>
+        <div style="color:var(--t3)">Purchase<br>$1,000</div>
+      </div>
+      <div style="text-align:center;width:80px;margin-left:-10px">
+        <div style="font-weight:600;color:var(--amber)">31 Mar</div>
+        <div style="color:var(--t3)">Statement<br>issued</div>
+      </div>
+      <div style="text-align:center;width:80px">
+        <div style="font-weight:600;color:var(--red)">25 Apr</div>
+        <div style="color:var(--t3)">Due date<br>missed</div>
+      </div>
+      <div style="text-align:center;width:60px">
+        <div style="font-weight:600;color:#666">30 Apr</div>
+        <div style="color:var(--t3)">Next<br>statement</div>
+      </div>
+    </div>
+    <!-- annotation above line -->
+    
+  </div>
+
+  <div class="section-lbl">The 2-statement problem (most common customer confusion)</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+    <div class="stmt" style="margin:0">
+      <div class="stmt-head" style="padding:.5rem .75rem"><span class="stmt-head-title">March Statement</span></div>
+      <div class="stmt-row"><span class="stmt-label">Balance</span><span class="stmt-amount">$1,000</span></div>
+      <div class="stmt-row highlight-green"><span class="stmt-label">Payment received</span><span class="stmt-amount neg">-$1,000</span></div>
+      <div class="stmt-row subtotal"><span class="stmt-label">Closing balance</span><span class="stmt-amount">$0</span></div>
+    </div>
+    <div class="stmt" style="margin:0">
+      <div class="stmt-head" style="padding:.5rem .75rem"><span class="stmt-head-title">April Statement</span></div>
+      <div class="stmt-row"><span class="stmt-label">Opening balance</span><span class="stmt-amount">$0</span></div>
+      <div class="stmt-row highlight-red"><span class="stmt-label">Interest charge</span><span class="stmt-amount interest">$17.68</span></div>
+      <div class="stmt-row subtotal"><span class="stmt-label">Closing balance</span><span class="stmt-amount">$17.68</span></div>
+    </div>
+  </div>
+  
+
+  <div class="section-lbl">What most people get wrong</div>
+  <div class="box amber">
+    <div class="box-lbl">It is NOT just about the due date</div>
+    Customers think:
+    <br>“I paid it off, so no interest”
+    <br><br>
+    Reality:
+    <ul>
+      <li>Interest may have already been accruing BEFORE they paid</li>
+      <li>If they lost their interest-free period, it applies <strong>retroactively</strong></li>
+    </ul>
+  </div>
+
+
+  <div class="section-lbl">Transaction types matter</div>
+  <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:12px">
+    ${[
+      ['var(--green)','Purchases','Interest-free period applies ONLY if full balance is paid by due date'],
+      ['var(--red)','Cash advances','Interest starts immediately - NO interest-free period'],
+      ['var(--brand)','Balance transfers','Separate rate and rules - does NOT behave like purchases'],
+    ].map(([col,title,text])=>`
+      <div style="display:flex;gap:10px;padding:8px 10px;background:var(--surface);border-radius:var(--r)">
+        <div style="width:8px;height:8px;border-radius:99px;background:${col};margin-top:6px"></div>
+        <div><div style="font-weight:600;font-size:12px">${title}</div><div style="font-size:12px;color:var(--t2)">${text}</div></div>
+      </div>
+    `).join('')}
+  </div>
+
+  <div class="divider"></div>
+  <div class="section-lbl">Agent tips</div>
+  <div class="agent-tip"><div class="at-lbl">Common question</div>
+     <div class="at-q">"I paid it off - why am I still charged interest?"</div>
+    <div class="at-a">
+      Interest is charged daily while there is a balance.  
+      If the full closing balance wasn’t paid by the due date in the previous cycle, interest starts from the purchase date and continues until the balance is cleared.  
+      That interest is then added on the next statement.
+    </div>
+    </div>
+  <div class="agent-tip"><div class="at-lbl">Common question</div>
+    <div class="at-q">"I see interest on 2 statements in a row - is this a double charge?"</div>
+    <div class="at-a">No. The first charge is interest for the unpaid balance period. The second is the gap between that statement date and when payment was finally received. Two separate accrual periods - both correct under Clause 5.3 of the Westpac Credit Card T&Cs.</div>
+  </div>
+`}
+
+function renderStatement(){return `
+  <div class="section-lbl">A typical credit card statement - annotated</div>
+  <div class="stmt">
+    <div class="stmt-head">
+      <span class="stmt-head-title">Westpac Credit Card Statement</span>
+      <span class="stmt-head-sub">Period: 1 Mar – 31 Mar 2025 · Account ****1234</span>
+    </div>
+
+    <div class="stmt-row head"><span>Account Summary</span></div>
+    <div class="stmt-row"><span class="stmt-label" style="display:flex;align-items:center;gap:6px"><span class="stmt-callout" style="background:#5a5b7a">1</span> Opening Balance</span><span class="stmt-amount">$1,250.00</span></div>
+
+    <div class="stmt-row head"><span>Transactions</span></div>
+    <div class="stmt-row"><span class="stmt-label" style="display:flex;align-items:center;gap:6px"><span class="stmt-callout" style="background:var(--brand)">2</span> 03 Mar - Woolworths</span><span class="stmt-amount">$124.50</span></div>
+    <div class="stmt-row"><span class="stmt-label" style="padding-left:24px">07 Mar - Netflix</span><span class="stmt-amount">$15.99</span></div>
+    <div class="stmt-row"><span class="stmt-label" style="padding-left:24px">14 Mar - Shell Petrol</span><span class="stmt-amount">$89.70</span></div>
+
+    <div class="stmt-row head"><span>Payments & Credits</span></div>
+    <div class="stmt-row highlight-green"><span class="stmt-label" style="display:flex;align-items:center;gap:6px"><span class="stmt-callout" style="background:var(--green)">3</span> 18 Mar - Payment - Thank you</span><span class="stmt-amount neg">-$600.00</span></div>
+
+    <div class="stmt-row head"><span>Interest & Fees</span></div>
+    <div class="stmt-row highlight-red"><span class="stmt-label" style="display:flex;align-items:center;gap:6px"><span class="stmt-callout" style="background:var(--red)">4</span> 31 Mar - Interest Charge</span><span class="stmt-amount interest">$14.32</span></div>
+    <div class="stmt-row highlight-amber"><span class="stmt-label" style="display:flex;align-items:center;gap:6px"><span class="stmt-callout" style="background:var(--amber)">5</span> 31 Mar - Annual Card Fee</span><span class="stmt-amount">$175.00</span></div>
+
+    <div class="stmt-row total"><span class="stmt-label" style="display:flex;align-items:center;gap:6px"><span class="stmt-callout" style="background:var(--navy)">6</span> Closing Balance</span><span class="stmt-amount brand">$1,069.51</span></div>
+    <div class="stmt-row highlight-blue"><span class="stmt-label" style="display:flex;align-items:center;gap:6px"><span class="stmt-callout" style="background:var(--brand)">7</span> Minimum Payment Due</span><span class="stmt-amount brand">$21.39</span></div>
+    <div class="stmt-row"><span class="stmt-label" style="display:flex;align-items:center;gap:6px"><span class="stmt-callout" style="background:var(--navy)">8</span> Payment Due Date</span><span class="stmt-amount">15 Apr 2025</span></div>
+  </div>
+
+  <div class="section-lbl">What each number means</div>
+  <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:12px">
+    ${[
+      ['1','#5a5b7a','Opening Balance','What was owed at the start of this statement period - the closing balance from last month.'],
+      ['2','var(--brand)','Transactions','All purchases made this period. Interest and fees are NOT included here - they have their own section.'],
+      ['3','var(--green)','Payments & Credits','Money the customer paid in, plus any refunds. Shown as negative (reduces what they owe).'],
+      ['4','var(--red)','Interest Charge','The daily interest accrued over the period, totalled and posted at statement end. Only appears if they carried a balance.'],
+      ['5','var(--amber)','Fees','Annual card fee, cash advance fee, missed payment fee, etc. These are separate from interest.'],
+      ['6','var(--navy)','Closing Balance','What they owe right now. = Opening + Transactions − Payments + Interest + Fees.'],
+      ['7','var(--brand)','Minimum Payment Due','The least they must pay to avoid a $20 missed payment fee. Paying only the minimum means interest accrues on the rest.'],
+      ['8','var(--navy)','Payment Due Date','The deadline. Pay the full closing balance by this date to keep the interest-free period.'],
+    ].map(([n,col,title,text])=>`
+      <div style="display:flex;gap:10px;align-items:flex-start;padding:8px 10px;background:var(--surface);border-radius:var(--r)">
+        <div style="width:20px;height:20px;border-radius:99px;background:${col};color:#fff;font-size:10px;font-weight:700;display:grid;place-items:center;flex-shrink:0;margin-top:1px">${n}</div>
+        <div><div style="font-size:12px;font-weight:600;color:var(--t1);margin-bottom:2px">${title}</div><div style="font-size:12px;color:var(--t2);line-height:1.5">${text}</div></div>
+      </div>`).join('')}
+  </div>
+
+  <div class="divider"></div>
+  <div class="section-lbl">Agent tips</div>
+  <div class="agent-tip"><div class="at-lbl">Common question</div>
+    <div class="at-q">"What is the difference between the closing balance and the minimum payment?"</div>
+    <div class="at-a">The closing balance is the full amount owed. The minimum payment is the least they must pay to avoid a late fee - but paying only the minimum means interest accrues on everything else. To keep interest-free days, they must pay the full closing balance (or Monthly Payment Balance if they have a SmartPlan or Balance Transfer).</div>
+  </div>
+  <div class="agent-tip"><div class="at-lbl">Common question</div>
+    <div class="at-q">"Why do I see both interest AND fees on my statement?"</div>
+    <div class="at-a">They're different things. Interest is charged on the balance they carried day-to-day. Fees are fixed charges for specific events - like the annual card fee or a missed payment fee. A customer can have a fee without any interest (e.g. if they paid in full but still got charged the annual fee).</div>
+  </div>
+`}
+
+function renderBalanceXfr(){return `
+  <div class="section-lbl">What is a balance transfer?</div>
+  <div class="box blue"><div class="box-lbl">Simple definition</div>
+    A balance transfer moves debt from a higher-interest card to a Westpac card at a lower (often 0%) promotional rate for a set period. It doesn't reduce what you owe - it changes where you owe it and at what rate.
+  </div>
+
+  <div class="section-lbl">Before & after</div>
+  <div class="two-col">
+    <div style="background:var(--red-bg);border:1px solid var(--red-bdr);border-radius:var(--rl);padding:1rem;text-align:center">
+      <div style="font-size:10px;text-transform:uppercase;font-weight:700;color:var(--red);margin-bottom:.5rem">Other bank card - BEFORE</div>
+      <div style="font-size:24px;font-weight:700;color:var(--t1)">$5,000</div>
+      <div style="font-size:12px;color:var(--t2);margin-top:4px">At 22% p.a.</div>
+      <div style="font-size:11px;color:var(--red);margin-top:6px;font-weight:600">≈ $3.01/day interest</div>
+    </div>
+    <div style="background:var(--green-bg);border:1px solid var(--green-bdr);border-radius:var(--rl);padding:1rem;text-align:center">
+      <div style="font-size:10px;text-transform:uppercase;font-weight:700;color:var(--green);margin-bottom:.5rem">Westpac card - AFTER</div>
+      <div style="font-size:24px;font-weight:700;color:var(--t1)">$5,000</div>
+      <div style="font-size:12px;color:var(--t2);margin-top:4px">At 0% for 20 months</div>
+      <div style="font-size:11px;color:var(--green);margin-top:6px;font-weight:600">$0/day interest (promo period)</div>
+    </div>
+  </div>
+
+  <div class="section-lbl">The timeline - what agents must explain</div>
+  <div style="position:relative;margin:1.5rem 0 1rem;padding:0 8px">
+    <div style="height:8px;border-radius:99px;overflow:hidden;display:flex">
+      <div style="width:72%;background:var(--green);display:flex;align-items:center;padding-left:10px"><span style="font-size:10px;font-weight:600;color:#fff">0% promotional period (20 months)</span></div>
+      <div style="width:28%;background:var(--red);display:flex;align-items:center;justify-content:flex-end;padding-right:8px"><span style="font-size:10px;font-weight:600;color:#fff">Standard rate</span></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:10px;color:var(--t2)">
+      <span>Transfer date (Day 1)<br><span style="font-style:italic">Interest starts immediately on BT</span></span>
+      <span style="text-align:center">Month 20<br><span style="color:var(--red);font-weight:600">Promo ends!</span></span>
+      <span style="text-align:right">Remaining balance →<br>reverts to purchase/cash rate</span>
+    </div>
+  </div>
+
+  <div class="section-lbl">How it appears on a statement</div>
+  <div class="stmt">
+    <div class="stmt-head"><span class="stmt-head-title">Account Summary - Balance Transfer Active</span></div>
+    <div class="stmt-row"><span class="stmt-label">Main Account Balance</span><span class="stmt-amount">$234.19</span></div>
+    <div class="stmt-row highlight-blue"><span class="stmt-label">Balance Transfer Balance</span><span class="stmt-amount brand">$4,750.00</span></div>
+    <div class="stmt-row total"><span class="stmt-label">Total Closing Balance</span><span class="stmt-amount brand">$4,984.19</span></div>
+    <div class="stmt-row"><span class="stmt-label" style="color:var(--brand);font-size:11px">Monthly Payment Balance (pay this to keep interest free on purchases)</span><span class="stmt-amount brand" style="font-size:11px">$234.19</span></div>
+  </div>
+
+  <div class="box amber"><div class="box-lbl">⚠ Key rule agents must know</div>
+    While a Balance Transfer is active, the customer must pay the <strong>Monthly Payment Balance</strong> (not the full closing balance) to keep their interest-free period on purchases. This is different from the normal "pay the closing balance" rule.
+  </div>
+
+  <div class="box red"><div class="box-lbl">Critical - what happens at end of promo period</div>
+    Any remaining Balance Transfer balance reverts to the Purchase Balance or Cash Advance Balance (per the original offer terms) and starts attracting the standard rate. Customers should aim to pay it off before the promo ends. Not available on Westpac Lite.
+  </div>
+
+  <div class="divider"></div>
+  <div class="section-lbl">Agent tips</div>
+  <div class="agent-tip"><div class="at-lbl">Common question</div>
+    <div class="at-q">"I did a balance transfer but I'm still being charged interest on my purchases."</div>
+    <div class="at-a">When a Balance Transfer is active, the customer needs to pay the Monthly Payment Balance (shown on their statement) - not the full closing balance - to maintain interest-free on purchases. If they only paid the minimum, interest would have applied to purchases. Check what amount they paid last month.</div>
+  </div>
+  <div class="agent-tip"><div class="at-lbl">Common question</div>
+    <div class="at-q">"Can I cancel a balance transfer?"</div>
+    <div class="at-a">Balance transfers can't be cancelled once processed, but customers can pay off the balance transfer balance faster. The balance transfer fee (typically 3%) is charged upfront and is not refunded.</div>
+  </div>
+`}
+
+function renderSmartplan(){return `
+  <div class="section-lbl">What is SmartPlan?</div>
+  <div class="box blue"><div class="box-lbl">Simple definition</div>
+    SmartPlan splits a large purchase or part of your card balance into <strong>fixed monthly instalments</strong> - like a mini payment plan within your credit card. You choose the number of months, and a set amount comes off each statement automatically.
+  </div>
+
+  <div class="section-lbl">How it splits your balance</div>
+  <div class="two-col">
+    <div class="bs-card" style="border-color:var(--bdr-md)">
+      <div class="bs-title">Before SmartPlan</div>
+      <div style="font-size:13px;color:var(--t2);margin-bottom:8px">Main Account Balance</div>
+      <div class="bs-amount">$3,200</div>
+      <div class="bs-rate">Full amount attracting 20.99% p.a.</div>
+      <div style="display:inline-block;font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px;margin-top:6px;background:var(--red-bg);color:var(--red)">No structure</div>
+    </div>
+    <div class="bs-card" style="border-color:var(--brand-mid);background:var(--brand-lt)">
+      <div class="bs-title" style="color:var(--brand)">After SmartPlan</div>
+      <div style="font-size:12px;color:var(--t2);margin-bottom:4px">Main Account Balance</div>
+      <div style="font-size:18px;font-weight:700;color:var(--t1)">$1,200</div>
+      <div style="height:8px"></div>
+      <div style="font-size:12px;color:var(--brand);font-weight:600;margin-bottom:2px">SmartPlan Balance</div>
+      <div style="font-size:18px;font-weight:700;color:var(--brand)">$2,000</div>
+      <div class="bs-pill" style="background:var(--brand-lt);color:var(--brand)">$200/month × 10 months</div>
+    </div>
+  </div>
+
+  <div class="section-lbl">How it appears on a statement</div>
+  <div class="stmt">
+    <div class="stmt-head"><span class="stmt-head-title">Account Summary - SmartPlan Active</span></div>
+    <div class="stmt-row"><span class="stmt-label">Main Account Balance</span><span class="stmt-amount">$1,200.00</span></div>
+    <div class="stmt-row highlight-blue"><span class="stmt-label">SmartPlan Balance(s)</span><span class="stmt-amount brand">$1,800.00</span></div>
+    <div class="stmt-row total"><span class="stmt-label">Total Closing Balance</span><span class="stmt-amount brand">$3,000.00</span></div>
+
+    <div class="stmt-row head"><span>SmartPlan Detail</span></div>
+    <div class="stmt-row highlight-blue"><span class="stmt-label">Plan 1: Television purchase - 8 months remaining</span><span class="stmt-amount brand">$200.00/mo</span></div>
+
+    <div class="stmt-row head"><span>What to pay this month</span></div>
+    <div class="stmt-row"><span class="stmt-label">Monthly Payment Balance (keeps interest free on purchases)</span><span class="stmt-amount">$1,200.00</span></div>
+    <div class="stmt-row"><span class="stmt-label">SmartPlan Instalment</span><span class="stmt-amount">$200.00</span></div>
+    <div class="stmt-row total"><span class="stmt-label">Monthly Payment (pay this to keep SmartPlan active)</span><span class="stmt-amount brand">$1,400.00</span></div>
+  </div>
+
+  <div class="box amber"><div class="box-lbl">⚠ Autopay must be updated first</div>
+    Before setting up a SmartPlan, the customer must update Autopay to either "Monthly Payment Balance" or "Monthly Payment." A fixed dollar amount or percentage Autopay is not compatible - the setup will be blocked.
+  </div>
+
+  <div class="box red"><div class="box-lbl">What happens if a SmartPlan payment is missed</div>
+    Westpac may cancel the SmartPlan and move the remaining balance back to the Main Account Balance where standard interest applies. Setup fees are not refunded.
+  </div>
+
+  <div class="divider"></div>
+  <div class="section-lbl">Agent tips</div>
+  <div class="agent-tip"><div class="at-lbl">Common question</div>
+    <div class="at-q">"I set up SmartPlan but my Autopay stopped working."</div>
+    <div class="at-a">This is expected behaviour. Setting up a SmartPlan affects existing Autopay. If Autopay was set to a fixed dollar amount or percentage, the customer needs to update it to "Monthly Payment Balance" or "Monthly Payment" before the SmartPlan can proceed. Ask them to update this in Online Banking. Reference: Westpac Credit Card T&Cs Clause 7.5.</div>
+  </div>
+  <div class="agent-tip"><div class="at-lbl">Common question</div>
+    <div class="at-q">"Can the customer have more than one SmartPlan?"</div>
+    <div class="at-a">Yes - up to 8 active SmartPlans at once. Each appears separately on the statement with its own instalment amount. Payments are applied to the highest-rate SmartPlan first, then oldest first if the rate is the same.</div>
+  </div>
+  <div class="agent-tip"><div class="at-lbl">Common question</div>
+    <div class="at-q">"How do I set up SmartPlan for a customer?"</div>
+    <div class="at-a">SmartPlan can only be set up through Online Banking (desktop or Westpac App). Agents cannot set it up directly on behalf of the customer. Takes up to 2 business days to activate. The rate and fees are disclosed at setup and the customer receives notification when it's accepted. Reference: Clause 7.2.</div>
+  </div>
+`}
+
+function renderPartpay(){return `
+  <div class="section-lbl">What is PartPay?</div>
+  <div class="box blue"><div class="box-lbl">Simple definition</div>
+    PartPay splits a purchase into <strong>4 equal payments over 6 weeks</strong> with <strong>0% interest</strong>. It uses a separate digital card (PartPay Card) that's linked to the main credit card account. Think of it as a built-in buy-now-pay-later.
+  </div>
+
+  <div class="section-lbl">How a $500 purchase is split</div>
+  <div class="pay-schedule">
+    <div class="pay-item paid">
+      <div class="pi-num">Payment 1</div>
+      <div class="pi-amount">$125</div>
+      <div class="pi-date">1 Mar (at purchase)</div>
+      <div class="pi-status">✓ Paid</div>
+    </div>
+    <div class="pay-item paid">
+      <div class="pi-num">Payment 2</div>
+      <div class="pi-amount">$125</div>
+      <div class="pi-date">15 Mar</div>
+      <div class="pi-status">✓ Paid</div>
+    </div>
+    <div class="pay-item due">
+      <div class="pi-num">Payment 3</div>
+      <div class="pi-amount">$125</div>
+      <div class="pi-date">29 Mar</div>
+      <div class="pi-status">DUE NOW</div>
+    </div>
+    <div class="pay-item future">
+      <div class="pi-num">Payment 4</div>
+      <div class="pi-amount">$125</div>
+      <div class="pi-date">12 Apr</div>
+      <div class="pi-status">Upcoming</div>
+    </div>
+  </div>
+
+  <div class="section-lbl">How it appears on a statement</div>
+  <div class="stmt">
+    <div class="stmt-head"><span class="stmt-head-title">Account Summary - PartPay Active</span></div>
+    <div class="stmt-row"><span class="stmt-label">Main Account Balance</span><span class="stmt-amount">$450.00</span></div>
+    <div class="stmt-row highlight-blue"><span class="stmt-label">PartPay Balance</span><span class="stmt-amount brand">$250.00</span></div>
+    <div class="stmt-row total"><span class="stmt-label">Total Closing Balance</span><span class="stmt-amount brand">$700.00</span></div>
+
+    <div class="stmt-row head"><span>PartPay Detail</span></div>
+    <div class="stmt-row highlight-blue"><span class="stmt-label">Appliance Store - $500.00 original</span><span class="stmt-amount">$250.00 remaining</span></div>
+    <div class="stmt-row" style="font-size:11px"><span class="stmt-label" style="color:var(--t3)">Instalments 1 & 2 paid · Instalment 3 due 29 Mar · Instalment 4 due 12 Apr</span><span></span></div>
+
+    <div class="stmt-row head"><span>What to pay this month</span></div>
+    <div class="stmt-row"><span class="stmt-label">Monthly Payment Balance (keeps purchases interest free - excludes PartPay)</span><span class="stmt-amount">$450.00</span></div>
+    <div style="padding:6px 1rem;font-size:11px;color:var(--brand);background:var(--brand-lt)">PartPay Balance (0% interest) - collected automatically per schedule above</div>
+  </div>
+
+  <div class="section-lbl">Key rules - what's different about PartPay</div>
+  <div style="display:flex;flex-direction:column;gap:7px;margin-bottom:12px">
+    ${[
+      ['var(--green)','0% interest on PartPay Balance','The PartPay Balance always sits at 0% - no interest, ever, as long as instalments are paid on time.'],
+      ['var(--green)','Does not need to be paid for interest free on purchases','The Monthly Payment Balance excludes PartPay - customers only need to pay the Main Account Balance to keep interest free days on purchases.'],
+      ['var(--brand)','PartPay Card is a digital card only','It is a separate digital card linked to the main credit card account. It can ONLY be used for eligible purchases - no cash advances, no Balance Transfers.'],
+      ['var(--amber)','Cash advances not permitted','If a cash advance accidentally goes through on a PartPay Card, it is treated as a PartPay Purchase and repaid per the instalment schedule.'],
+      ['var(--red)','Missed PartPay payment = moves to purchase balance','A missed PartPay payment (Missed PartPay Payment) is moved into the Purchase Balance and attracts the standard purchase rate from that point.'],
+      ['var(--amber)','Points earned on full purchase value','Points are earned on the full purchase value - not on each individual instalment.'],
+    ].map(([col,title,text])=>`
+      <div style="display:flex;gap:10px;align-items:flex-start;padding:8px 10px;background:var(--surface);border-radius:var(--r)">
+        <div style="width:8px;height:8px;border-radius:99px;background:${col};flex-shrink:0;margin-top:5px"></div>
+        <div><div style="font-size:12px;font-weight:600;color:var(--t1);margin-bottom:2px">${title}</div><div style="font-size:12px;color:var(--t2);line-height:1.5">${text}</div></div>
+      </div>`).join('')}
+  </div>
+
+  <div class="divider"></div>
+  <div class="section-lbl">Agent tips</div>
+  <div class="agent-tip"><div class="at-lbl">Common question</div>
+    <div class="at-q">"I paid my credit card balance but PartPay is still showing - do I owe more?"</div>
+    <div class="at-a">Yes, PartPay is collected separately on its own schedule. The Monthly Payment Balance they needed to pay only covered the Main Account Balance. The PartPay instalments are collected automatically on the PartPay dates. If they paid the Monthly Payment Balance correctly, they are not in arrears - PartPay is running as expected. Reference: Westpac Credit Card T&Cs Clause 5.2.</div>
+  </div>
+  <div class="agent-tip"><div class="at-lbl">Common question</div>
+    <div class="at-q">"Why is there interest on my statement even though PartPay is 0%?"</div>
+    <div class="at-a">Interest is charged on the Main Account Balance - not the PartPay Balance. If the customer didn't pay the Monthly Payment Balance in full, interest would apply to their purchase balance. The PartPay Balance itself is always 0% and is never subject to interest. Reference: Altitude T&Cs and Westpac Credit Card T&Cs Table 1.</div>
+  </div>
+  <div class="agent-tip"><div class="at-lbl">Common question</div>
+    <div class="at-q">"What happens if I miss a PartPay payment?"</div>
+    <div class="at-a">A missed PartPay payment (called a "Missed PartPay Payment") is moved from the PartPay Balance into the Purchase Balance. From that point it attracts the standard purchase rate. It is also included in the Minimum Payment Due calculation going forward. Encourage the customer to set up Autopay to prevent this.</div>
+  </div>
+`}
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function render(){
+  const t = S.topicId ? TOPICS.find(x=>x.id===S.topicId) : null;
+  document.getElementById('app').innerHTML = `
+    <div class="phdr">
+      <div class="brand-row">
+        <div class="logomark">F</div>
+        <div><div class="brand-name">Foundever</div><div class="brand-sub">Credit Card Statement Guide</div></div>
+      </div>
+      <a class="back-link" href="creditcardstnc.html">← T&C Guide</a>
+    </div>
+    <div class="shell">
+      ${S.screen === 'home' ? renderHome() : renderTopic(t)}
+    </div>`;
+}
+
+function renderHome(){
+  return `
+    <div class="home-head">
+      <h1>Understanding Credit Card Statements</h1>
+      <p>A visual guide for agents. Covers interest, statement layout, balance transfers, SmartPlan, and PartPay - explained simply with diagrams.</p>
+    </div>
+    <div class="topic-grid">
+      ${TOPICS.map(t=>`
+        <div class="topic-card" onclick="goTopic('${t.id}')">
+          <div class="tc-pill" style="background:${t.bg}">${t.icon}</div>
+          <div class="tc-lbl">${escH(t.label)}</div>
+          <div class="tc-desc">${escH(t.sub)}</div>
+        </div>`).join('')}
+    </div>`;
+}
+
+function renderTopic(t){
+  const contentMap = {
+    interest:    renderInterest,
+    statement:   renderStatement,
+    balance_xfr: renderBalanceXfr,
+    smartplan:   renderSmartplan,
+    partpay:     renderPartpay,
+  };
+  const body = contentMap[t.id] ? contentMap[t.id]() : '<p>Coming soon.</p>';
+  return `
+    <div class="topic-hdr">
+      <div class="th-inner">
+        <div class="th-icon" style="background:${t.bg}">${t.icon}</div>
+        <div><div class="th-title">${escH(t.label)}</div><div class="th-sub">${escH(t.sub)}</div></div>
+      </div>
+      <button class="btn" onclick="goHome()">← Back</button>
+    </div>
+    <div class="content">${body}</div>`;
+}
+
+function goHome(){ S.screen='home'; S.topicId=null; render(); window.scrollTo(0,0); }
+function goTopic(id){ S.topicId=id; S.screen='topic'; render(); window.scrollTo(0,0); }
+
+render();
+</script>
+</body>
+</html>
