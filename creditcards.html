@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Training Hub - Foundever</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style-cards.css">
+</head>
+<body>
+<div id="app"></div>
+<script>
+
+// ── TOPICS ──────────────────────────────────────────────────────
+const TOPICS=[
+  {id:'card_dispute', label:'Card Dispute',        desc:'Customer disputes a transaction',      icon:'💳',bg:'#ededff',cx:'complex'},
+  {id:'fraud',        label:'Fraud Transaction',   desc:'Unrecognised or unauthorised charge',  icon:'🚨',bg:'#fdf0ed',cx:'complex'},
+  {id:'intl_travel',  label:'International Travel',desc:'Customer using card overseas',         icon:'✈️',bg:'#e8f7f2',cx:'medium'},
+  {id:'reissue',      label:'Reissue Card',        desc:'Lost, stolen or damaged card',         icon:'🔄',bg:'#f3f3f8',cx:'simple'},
+  {id:'interest',     label:'Interest Charged',    desc:'Query on interest applied',            icon:'📈',bg:'#f0faf4',cx:'simple'},
+  {id:'fees',         label:'Fees Charged',        desc:'Annual fee or other charges',          icon:'💰',bg:'#fffbf0',cx:'simple'},
+  {id:'closure',      label:'Card Closure',        desc:'Customer wants to close account',      icon:'❌',bg:'#fff1f0',cx:'simple'},
+  {id:'activation',   label:'Card Activation',     desc:'Activate a new or replacement card',   icon:'✅',bg:'#f0faf4',cx:'simple'},
+  {id:'rewards',      label:'Rewards Points',      desc:'Check or redeem rewards',              icon:'⭐',bg:'#fffbf0',cx:'simple'},
+  {id:'autopay',      label:'Autopay',             desc:'Set up or change auto payments',       icon:'🔃',bg:'#f3f3f8',cx:'simple'},
+  {id:'smart_plans',  label:'Smart Plans',         desc:'Instalment payment options',           icon:'📋',bg:'#ededff',cx:'simple'},
+];
+
+// ── VOICE KEYWORDS ────────────────────────────────────────────
+const VOICE_KEYWORDS={
+  card_dispute:['dispute','card dispute','transaction dispute','chargeback','wrong charge','incorrect charge','unknown charge','unauthorised charge','unauthorized charge','unrecognised charge','unrecognized charge','merchant','look who charging','paypal dispute','didnt recognise','didnt recognize','dont recognise','dont recognize','over 150 days','150 days','5 months ago','old transaction','payment by authority','direct debit dispute','transaction not mine','charge not mine','didnt make this','i didnt make'],
+  fraud:['fraud','fraudulent','fraud transaction','report fraud','stolen card','card stolen','card compromised','unauthorized','unauthorised','unauthorised transaction','unauthorized transaction','scam','scammed','phishing','suspicious transaction','not me','wasnt me','didnt make this transaction','i didnt authorize','someone used my card','card used without permission','identity theft','hacked'],
+  intl_travel:['travel','travelling','traveling','overseas','international','abroad','going overseas','trip','holiday','vacation','using card overseas','card overseas','international travel','travel notes','add travel notes','card blocked overseas','leaving the country','going to another country','visiting'],
+  reissue:['lost card','lost my card','cant find card','missing card','card missing','stolen card','card stolen','damaged card','card damaged','broken card','reissue','replace card','replacement card','new card','need a new card','card not working physically','card snapped','card cracked','send me a new card'],
+  interest:['interest','interest charge','interest charged','finance charge','interest query','why am i charged interest','purchase rate','cash advance rate','apr','interest rate','accrued interest','how interest works','charged interest'],
+  fees:['fee','fees','fee charged','charged fee','annual fee','yearly fee','fee waiver','waive fee','waive the fee','fee removed','remove fee','late fee','late payment fee','overlimit fee','penalty fee','account fee','maintenance fee','why was i charged a fee'],
+  closure:['close','close card','close account','cancel','cancel card','cancel account','closure','closing','cancellation','terminate','shut account','dont want card','no longer want','getting rid of card','account closure'],
+  activation:['activate','activate card','activation','card activation','new card activate','just got my card','received my card','card arrived','cant use card','card not working','pin','set up pin','card not activated','need to activate','how to activate'],
+  rewards:['rewards','reward points','points','redeem','redeeming','loyalty points','cashback','bonus points','earn points','how many points','check points','rewards balance','points balance','use my points','points expiry'],
+  autopay:['autopay','auto pay','automatic payment','set up autopay','cancel autopay','change autopay','modify autopay','direct debit','auto deduct','automatic deduction','standing order','scheduled payment','recurring payment','payment not coming out'],
+  smart_plans:['smart plan','smart plans','instalment','installment','payment plan','split payment','monthly payment','pay in instalments','pay in installments','break up payment','spread payment','pay off over time','fixed repayment','instalment plan','repayment plan'],
+};
+
+// ── PRE-FLIGHT NODE (shared across all flows) ─────────────────
+// Every flow starts here. n:'s' points to each flow's own first step.
+const PRE={type:'action',text:'Before you begin:',bullets:['Note the last 4 digits of the customer\'s card','Confirm the customer is at Full or Advanced ID - if not, take them there first'],n:'s'};
+
+// ── FLOWS ──────────────────────────────────────────────────────
+const FLOWS={
+  card_dispute:{
+    pre:PRE,
+    s:{type:'action',text:'Ask the customer:',bullets:['When did the transaction happen?','How much was the transaction?','Name of the merchant / description'],n:'recognize'},
+
+    recognize:{type:'q',text:'Do they recognise the merchant?',opts:[{l:'Yes - they recognise it',n:'paypal_old'},{l:'No - they don\'t recognise it',n:'look_who'}]},
+    
+    no_action:{type:'out',sev:'ok',text:'No further action needed. Thank the customer.'},
+    look_who:{type:'action',text:'Check Look Who\'s Charging - the merchant may trade under a different name.',n:'other_name'},
+    other_name:{type:'q',text:'Does the merchant have another name?',opts:[{l:'Yes - found another name',n:'recog_new'},{l:'No - no other name found',n:'fraud_path'}]},
+    recog_new:{type:'q',text:'Do they recognise the new name?',opts:[{l:'Yes - recognised',n:'still_2'},{l:'No - still unrecognised',n:'fraud_path'}]},
+    still_2:{type:'q',text:'Would they still like to dispute?',opts:[{l:'Yes',n:'paypal_old'},{l:'No',n:'no_action'}]},
+
+    fraud_path:{type:'action',text:'Check if there are other transactions from the same merchant.',n:'report_fraud'},
+
+    report_fraud:{type:'out',sev:'danger',text:'Digital Banker → Transaction Services → Report Fraud → Advise OB may be temporarily blocked → Report Fraud Transaction → Offer to reissue card.'},
+   
+    paypal_old:{type:'q',text:'Was the payment made through PayPal?',opts:[{l:'Yes',n:'pba'},{l:'No',n:'over150'}]},
+    pba:{type:'q',text:'Does the transaction show PAYMENT BY AUTHORITY PayPal?',opts:[{l:'Yes',n:'direct_debit'},{l:'No',n:'refer_pp_A'}]},
+
+    direct_debit:{type:'out',sev:'info',text:'Dispute as a direct debit - NOT a card dispute.'},
+    refer_pp_A:{type:'out',sev:'danger',text:'Ask them to check with PayPal. We are unable to help them.'},
+
+    other_merch:{type:'action',text:'Check if there are other transactions from the same merchant.',n:'over150'},
+
+    over150:{type:'q',text:'Was the transaction more than 150 days ago (5 months)?',opts:[{l:'Yes - over 150 days',n:'advise_old_pp'},{l:'No - within 150 days',n:'pending'}]},
+    advise_old_pp:{type:'info',sev:'warn',text:'Advise the customer this type of dispute might not always be resolved in their favour.',n:'sol_150'},
+    sol_150:{type:'out',sev:'info',text:'Go to SOL → Select Service Requests → Select Card Disputes over 150 days.'},
+
+    pending:{type:'q',text:'Check SOL - is the transaction still pending?',opts:[{l:'Yes - still pending',n:'callback_pp'},{l:'No - processed',n:'can_ob'}]},
+
+    callback_pp:{type:'out',sev:'warn',text:'Ask them to call back once processed. Advise they can report it via Online Banking once it is fully processed.'},
+    can_ob:{type:'q',text:'Can they action it on their Online Banking?',opts:[{l:'Yes',n:'digital_guide'},{l:'No',n:'sol_dispute'}]},
+    digital_guide:{type:'out',sev:'ok',text:'Check the Online & Mobile Banking hub / Digital First to guide them through the dispute process.'},
+
+    sol_dispute:{type:'out',sev:'info',text:'Go SOL → Select Transactions → Select the transaction → Click Card Dispute → Read the disclosure → Fill the form with all details.'},
+    
+  },
+  fraud:{
+    pre:PRE,
+    s:{type:'action',text:'Ask the customer:',bullets:['When did the transaction happen?','How much was it?','Name of the merchant / description'],n:'recognize'},
+    recognize:{type:'q',text:'Do they recognise the merchant?',opts:[{l:'Yes - they recognise it',n:'paypal_old'},{l:'No - they don\'t recognise it',n:'look_who'}]},
+    
+    no_action:{type:'out',sev:'ok',text:'No further action needed. Thank the customer.'},
+    look_who:{type:'action',text:'Check Look Who\'s Charging - the merchant may trade under a different name.',n:'other_name'},
+    other_name:{type:'q',text:'Does the merchant have another name?',opts:[{l:'Yes - found another name',n:'recog_new'},{l:'No - no other name found',n:'fraud_path'}]},
+    recog_new:{type:'q',text:'Do they recognise the new name?',opts:[{l:'Yes - recognised',n:'still_2'},{l:'No - still unrecognised',n:'fraud_path'}]},
+    still_2:{type:'q',text:'Would they still like to dispute?',opts:[{l:'Yes',n:'paypal_old'},{l:'No',n:'no_action'}]},
+
+    fraud_path:{type:'action',text:'Check if there are other transactions from the same merchant.',n:'report_fraud'},
+    
+    report_fraud:{type:'out',sev:'info',text:'Digital Banker → Transaction Services → Report Fraud → Advise OB may be temporarily blocked → Report Fraud Transaction → Offer to reissue card.'},
+   
+    paypal_old:{type:'q',text:'Was the payment made through PayPal?',opts:[{l:'Yes',n:'pba'},{l:'No',n:'over150'}]},
+    pba:{type:'q',text:'Does the transaction show PAYMENT BY AUTHORITY PayPal?',opts:[{l:'Yes',n:'direct_debit'},{l:'No',n:'refer_pp_A'}]},
+
+    direct_debit:{type:'out',sev:'info',text:'Dispute as a direct debit - NOT a card dispute.'},
+    refer_pp_A:{type:'out',sev:'danger',text:'Ask them to check with PayPal. We are unable to help them.'},
+
+    other_merch:{type:'action',text:'Check if there are other transactions from the same merchant.',n:'over150'},
+
+    over150:{type:'q',text:'Was the transaction more than 150 days ago (5 months)?',opts:[{l:'Yes - over 150 days',n:'advise_old_pp'},{l:'No - within 150 days',n:'pending'}]},
+    advise_old_pp:{type:'info',sev:'warn',text:'Advise the customer this type of dispute might not always be resolved in their favour.',n:'sol_150'},
+    sol_150:{type:'out',sev:'info',text:'Go to SOL → Select Service Requests → Select Card Disputes over 150 days.'},
+
+    pending:{type:'q',text:'Check SOL - is the transaction still pending?',opts:[{l:'Yes - still pending',n:'callback_pp'},{l:'No - processed',n:'can_ob'}]},
+
+    callback_pp:{type:'out',sev:'warn',text:'Ask them to call back once processed. Advise they can report it via Online Banking once it is fully processed.'},
+    can_ob:{type:'q',text:'Can they action it on their Online Banking?',opts:[{l:'Yes',n:'digital_guide'},{l:'No',n:'sol_dispute'}]},
+    digital_guide:{type:'out',sev:'ok',text:'Check the Online & Mobile Banking hub / Digital First to guide them through the dispute process.'},
+
+    sol_dispute:{type:'out',sev:'info',text:'Go SOL → Select Transactions → Select the transaction → Click Card Dispute → Read the disclosure → Fill the form with all details.'},
+    
+  },
+  intl_travel:{
+    pre:PRE,
+    s:{type:'q',text:'Will they be using this card overseas?',opts:[{l:'Yes - will use overseas',n:'notes_q'},{l:'No - won\'t use overseas',n:'advise'}]},
+    notes_q:{type:'q',text:'Would they like travel notes added to their card?',opts:[{l:'Yes - add travel notes',n:'add_notes'},{l:'No - not right now',n:'advise'}]},
+    add_notes:{type:'out',sev:'info',text:'SOL → Maintain Account → Add Notes → Select Overseas → Confirm departure date, return date, and destination countries.'},
+    advise:{type:'action',sev:'warn',text:'Advise the customer they can add travel notes just in case - it helps prevent the card being blocked overseas.',n:'add_notes'},
+  },
+  reissue:{
+    pre:PRE,
+    s:{type:'action',text:'Gather details from the customer:',bullets:['Ask for the reason: lost, stolen, or damaged?'],n:'check'},
+    check:{type:'action',text:'Check the current card status in the system.',n:'process'},
+    process:{type:'action',text:'Process the reissue request in the system.',n:'address'},
+    address:{type:'action',text:'Confirm the delivery address - don\'t assume it hasn\'t changed.',n:'done'},
+    done:{type:'out',sev:'ok',text:'Advise the customer to expect delivery in 5–7 business days. If the card was stolen, flag for potential fraud review.'},
+  },
+  interest:{
+    pre:PRE,
+    s:{type:'action',text:'Review with the customer:',bullets:['Which specific interest charge are they querying?','Pull up their statement and locate the charge'],n:'explain'},
+    explain:{type:'action',text:'Explain to the customer:',bullets:['How interest is calculated (purchase rate vs cash advance rate)','Interest accrues when the closing balance is not paid in full','Cash advance rates are typically higher than purchase rates'],n:'incorrect_q'},
+    incorrect_q:{type:'q',text:'Does the charge appear incorrect?',opts:[{l:'Yes - looks incorrect',n:'escalate'},{l:'No - charge is correct',n:'done_int'}]},
+    escalate:{type:'out',sev:'warn',text:'Escalate to a specialist to review the interest charge.'},
+    done_int:{type:'out',sev:'ok',text:'Direct the customer to the website for current interest rate information if needed.'},
+  },
+  fees:{
+    pre:PRE,
+    s:{type:'action',text:'Identify the fee:',bullets:['Find the specific fee type (annual, late payment, overlimit, etc.)','Verify the fee against account terms and conditions'],n:'waiver_q'},
+    waiver_q:{type:'q',text:'Is the customer eligible for a fee waiver?',opts:[{l:'Yes - eligible (first-time, loyalty, good standing)',n:'process_waiver'},{l:'No - not eligible',n:'explain_policy'}]},
+    process_waiver:{type:'action',text:'Process the fee waiver in the system. Document the waiver reason in your notes.',n:'done_fees'},
+    done_fees:{type:'out',sev:'ok',text:'Waiver processed. Explain the fee policy and how to avoid it in future.'},
+    explain_policy:{type:'out',sev:'info',text:'Explain the fee policy clearly and advise how the customer can avoid this charge in future.'},
+  },
+  closure:{
+    pre:PRE,
+    s:{type:'action',text:'Gather details:',bullets:['Understand the reason for closure'],n:'retention_q'},
+    retention_q:{type:'q',text:'Would you like to attempt retention?',opts:[{l:'Yes - make an offer',n:'offer'},{l:'No - proceed with closure',n:'close'}]},
+    offer:{type:'action',text:'Make an appropriate retention offer based on their reason for leaving.',n:'still_close'},
+    still_close:{type:'q',text:'Does the customer still want to close the account?',opts:[{l:'Yes - close it',n:'close'},{l:'No - keeping account',n:'retained'}]},
+    retained:{type:'out',sev:'ok',text:'Customer retained. Document the outcome in your notes.'},
+    close:{type:'action',text:'Process the closure in the system. Confirm any outstanding balance and how it will be managed.',n:'done_close'},
+    done_close:{type:'out',sev:'info',text:'Advise the customer when the final statement will be issued.'},
+  },
+  activation:{
+    pre:PRE,
+    s:{type:'action',text:'Verify card details with the customer:',bullets:['Last 4 digits of the card','Expiry date'],n:'activate'},
+    activate:{type:'action',text:'Activate the card in the system.',n:'done_act'},
+    done_act:{type:'out',sev:'ok',text:'Advise the customer to complete a chip & PIN transaction to finalise activation. Contactless works after the first successful PIN use.'},
+  },
+  rewards:{
+    pre:PRE,
+    s:{type:'action',text:'Check the customer\'s rewards balance in the system.',n:'explain_r'},
+    explain_r:{type:'action',text:'Explain the redemption options available to the customer.',n:'redeem_q'},
+    redeem_q:{type:'q',text:'Does the customer want to redeem points now?',opts:[{l:'Yes - process redemption',n:'redeem'},{l:'No - just enquiring',n:'done_rewards'}]},
+    redeem:{type:'action',text:'Process the redemption request in the system.',n:'done_rewards'},
+    done_rewards:{type:'out',sev:'ok',text:'Advise on points expiry policy and how to earn more. Direct them to the rewards portal for the full catalogue.'},
+  },
+  autopay:{
+    pre:PRE,
+    s:{type:'q',text:'What does the customer want to do?',opts:[{l:'Set up autopay',n:'setup_ap'},{l:'Modify autopay',n:'modify_ap'},{l:'Cancel autopay',n:'cancel_ap'}]},
+    setup_ap:{type:'action',text:'Set up autopay in the system. Confirm the payment amount (minimum vs full balance) and payment date.',n:'done_ap'},
+    modify_ap:{type:'action',text:'Modify the existing autopay. Confirm the new amount and/or payment date.',n:'done_ap'},
+    cancel_ap:{type:'action',text:'Cancel the autopay in the system.',n:'done_ap'},
+    done_ap:{type:'out',sev:'info',text:'Advise the customer that changes take effect from the next billing cycle - not the current one.'},
+  },
+  smart_plans:{
+    pre:PRE,
+    s:{type:'action',text:'Explain Smart Plans to the customer:',bullets:['Smart Plans convert an existing purchase balance into fixed monthly repayments','Eligibility depends on the specific purchase'],n:'eligible_q'},
+    eligible_q:{type:'q',text:'Is the customer eligible and do they want to proceed?',opts:[{l:'Yes - set up the plan',n:'setup_sp'},{l:'No - customer declines',n:'decline_sp'}]},
+    setup_sp:{type:'action',text:'Set up the Smart Plan in the system. Confirm the monthly repayment amount and plan duration.',n:'done_sp'},
+    done_sp:{type:'out',sev:'ok',text:'Confirm the plan is active. Advise on early payout options and any applicable fees. Note: some plans carry interest - always disclose this clearly.'},
+    decline_sp:{type:'out',sev:'info',text:'Note the customer\'s preference. Remind them they can call back to set up a plan at any time.'},
+  },
+};
+
+const SEV_MAP={
+  danger:{tag:'Escalate',color:'var(--danger)',bdr:'var(--danger-bdr)',bg:'var(--danger-bg)'},
+  warn:  {tag:'Caution', color:'var(--warn)',  bdr:'var(--warn-bdr)', bg:'var(--warn-bg)'},
+  ok:    {tag:'Outcome', color:'var(--ok)',    bdr:'var(--ok-bdr)',   bg:'var(--ok-bg)'},
+  info:  {tag:'Action',  color:'var(--brand)', bdr:'var(--brand-mid)',bg:'var(--brand-lt)'},
+};
+
+// ── VOICE ENGINE ───────────────────────────────────────────────
+function normalize(s){return s.toLowerCase().replace(/[^\w\s]/g,'').replace(/\s+/g,' ').trim()}
+
+function scoreTopics(raw){
+  const input=normalize(raw);
+  const results=[];
+  for(const[tid,phrases]of Object.entries(VOICE_KEYWORDS)){
+    let hits=0;
+    for(const phrase of phrases){
+      const norm=normalize(phrase);
+      if(input.includes(norm)) hits+=norm.split(' ').length;
+    }
+    if(hits>0){
+      const score=hits/Math.max(input.split(' ').length,3);
+      results.push({tid,score});
+    }
+  }
+  return results.sort((a,b)=>b.score-a.score);
+}
+
+// ── STATE ──────────────────────────────────────────────────────
+const S={
+  screen:'home',
+  topicId:null,
+  nodeId:null,
+  hist:[],
+  search:'',
+  voiceState:'idle',   // idle | listening | heard
+  transcript:'',
+  suggestions:[],
+  showEsc:false,       // escalation table visible (independent of voice)
+  escCustId:'',
+  escQuestion:'',
+  escContext:'',
+  escResources:'',
+  copyState:'idle',
+};
+
+// ── SPEECH RECOGNITION ─────────────────────────────────────────
+let recognition=null;
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+const hasVoice=!!SR;
+
+if(hasVoice){
+  recognition=new SR();
+  recognition.continuous=false;
+  recognition.interimResults=true;
+  recognition.lang='en-AU';
+  recognition.onresult=e=>{
+    const t=Array.from(e.results).map(r=>r[0].transcript).join('');
+    S.transcript=t;
+    if(e.results[0].isFinal){recognition.stop();handleVoice(t);}
+    else{S.voiceState='listening';render();}
+  };
+  recognition.onerror=()=>{S.voiceState='idle';render();};
+  recognition.onend=()=>{if(S.voiceState==='listening'){S.voiceState='idle';render();}};
+}
+
+function toggleMic(){
+  if(!hasVoice)return;
+  if(S.voiceState==='listening'){recognition.stop();S.voiceState='idle';render();return;}
+  S.voiceState='listening';S.transcript='';S.suggestions=[];
+  render();
+  try{recognition.start();}catch(e){S.voiceState='idle';render();}
+}
+
+function handleVoice(raw){
+  const scored=scoreTopics(raw);
+  S.transcript=raw;
+  if(!scored.length){
+    // No match - open escalation table with transcript pre-filled
+    S.voiceState='idle';
+    openEsc(raw,'No matching flow found for: "'+raw+'"');
+    return;
+  }
+  if(scored[0].score>=0.35&&scored.length===1){
+    // High confidence single match - jump straight in
+    S.voiceState='idle';
+    goTopic(scored[0].tid);
+    return;
+  }
+  // Medium confidence - show suggestions
+  S.voiceState='heard';
+  S.suggestions=scored.slice(0,4).map(r=>{
+    const t=TOPICS.find(x=>x.id===r.tid);
+    return{tid:r.tid,score:r.score,label:t.label,icon:t.icon,high:r.score>=0.35};
+  });
+  render();
+}
+
+// ── ESCALATION ─────────────────────────────────────────────────
+function openEsc(question='',resources=''){
+  S.showEsc=true;
+  S.escQuestion=question;
+  S.escResources=resources;
+  S.escCustId='';S.escContext='';S.copyState='idle';
+  render();
+  // Scroll escalation into view
+  setTimeout(()=>{const el=document.getElementById('esc-panel');if(el)el.scrollIntoView({behavior:'smooth',block:'start'});},80);
+}
+
+function clearEsc(){
+  S.showEsc=false;S.voiceState='idle';S.transcript='';S.suggestions=[];
+  S.escCustId='';S.escQuestion='';S.escContext='';S.escResources='';S.copyState='idle';
+  render();
+}
+
+function copyEscalation(){
+  // Sync textarea values from DOM before copying (in case of fast typing)
+  const q=document.getElementById('esc-q');
+  const ctx=document.getElementById('esc-ctx');
+  const res=document.getElementById('esc-res');
+  const cid=document.getElementById('esc-cid');
+  if(q)S.escQuestion=q.value;
+  if(ctx)S.escContext=ctx.value;
+  if(res)S.escResources=res.value;
+  if(cid)S.escCustId=cid.value;
+
+  const lines=[
+    '📋 *SUPPORT REQUEST*',
+    '─────────────────────────',
+    '*Customer ID/CIS:* '+(S.escCustId||'(not provided)'),
+    '*Issue:* '+(S.escQuestion||'(not described)'),
+    '*Additional context:* '+(S.escContext||'(none)'),
+    '*Resources checked:* '+(S.escResources||'(none)'),
+    '─────────────────────────',
+    'Please advise 🙏',
+  ];
+  navigator.clipboard.writeText(lines.join('\n')).then(()=>{
+    S.copyState='copied';render();
+    setTimeout(()=>{S.copyState='idle';render();},2500);
+  });
+}
+
+// ── HELPERS ────────────────────────────────────────────────────
+const topic=id=>TOPICS.find(t=>t.id===id);
+const getNode=(tid,nid)=>FLOWS[tid][nid];
+const sevStyle=sev=>SEV_MAP[sev]||SEV_MAP.info;
+const escHtml=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const escJs=s=>String(s).replace(/'/g,"\\'").replace(/"/g,'\\"');
+
+// ── RENDER ─────────────────────────────────────────────────────
+function render(){
+  document.getElementById('app').innerHTML=`
+    <div class="phdr">
+      <div class="brand">
+        <div class="logomark">F</div>
+        <div><div class="brand-name">Foundever Training Hub</div></div>
+      </div>
+    </div>
+    <div class="shell">${S.screen==='home'?renderHome():renderTopic()}</div>
+  `;
+}
+
+function renderHome(){
+  const q=S.search.toLowerCase();
+  const filtered=TOPICS.filter(t=>!q||(t.label+t.desc).toLowerCase().includes(q));
+  const cxMap={complex:'cx-complex',medium:'cx-medium',simple:'cx-simple'};
+  const cxLabel={complex:'Complex flow',medium:'Medium flow',simple:'Simple flow'};
+
+  const cards=filtered.length
+    ?filtered.map(t=>`
+      <div class="topic-card" onclick="goTopic('${t.id}')">
+        <div class="tc-icon" style="background:${t.bg}">${t.icon}</div>
+        <div class="tc-lbl">${escHtml(t.label)}</div>
+        <div class="tc-desc">${escHtml(t.desc)}</div>
+        <div class="complexity ${cxMap[t.cx]}">${cxLabel[t.cx]}</div>
+      </div>`).join('')
+    :`<div class="no-match">No topics match "<strong>${escHtml(S.search)}</strong>"</div>`;
+
+  return `
+    <div class="home-head">
+      <h1>What's the call about?</h1>
+      <p>Search by typing, or tap the mic to speak a phrase - e.g. "dispute", "lost card", "travelling overseas".</p>
+    </div>
+    ${renderVoicePanel()}
+    <div class="esc-trigger-row">
+      <button class="esc-trigger-btn" onclick="openEsc()">⚑ Can't find it? Log a support request</button>
+    </div>
+    <div class="topic-grid">${cards}</div>
+    ${S.showEsc?renderEscalation():''}
+  `;
+}
+
+function renderVoicePanel(){
+  const listening=S.voiceState==='listening';
+  const micClass='mic-btn'+(listening?' listening':'')+(hasVoice?'':' no-support');
+
+  let statusHtml='';
+  if(S.voiceState==='listening'){
+    statusHtml=`<div class="voice-status">
+      <div class="vs-listening">🎙 ${S.transcript?`Hearing: "<em>${escHtml(S.transcript)}</em>"`:'Listening - speak now…'}</div>
+    </div>`;
+  } else if(S.voiceState==='heard'&&S.transcript){
+    statusHtml=`<div class="voice-status">
+      <div class="vs-heard">🎙 Heard: <strong>"${escHtml(S.transcript)}"</strong></div>
+    </div>`;
+  }
+
+  let sugHtml='';
+  if(S.voiceState==='heard'&&S.suggestions.length){
+    const chips=S.suggestions.map(s=>`
+      <button class="sug-chip" onclick="goTopic('${s.tid}')">
+        <span>${s.icon}</span><span>${escHtml(s.label)}</span>
+        <span class="conf ${s.high?'conf-high':'conf-med'}">${s.high?'Strong match':'Possible'}</span>
+      </button>`).join('');
+    sugHtml=`
+      <div class="sug-lbl">Did you mean?</div>
+      <div class="sug-chips">${chips}</div>
+      <button class="btn" style="margin-top:10px;width:100%" onclick="openEsc('${escJs(S.transcript)}','No flow matched for: &quot;'+S.transcript+'&quot;')">
+        None of these - log a support request
+      </button>`;
+  }
+
+  return `
+    <div class="voice-panel">
+      <div class="voice-row">
+        <div class="search-wrap">
+          <input id="srch" class="search" type="text" placeholder="Search topics - e.g. dispute, overseas, fees…" value="${escHtml(S.search)}" oninput="doSearch(this.value)" autocomplete="off">
+        </div>
+        <button class="${micClass}" onclick="${hasVoice?'toggleMic()':'void(0)'}" title="${hasVoice?(listening?'Stop listening':'Tap to speak'):'Voice not available in this browser'}" aria-label="Voice search">
+          ${listening?'⏹':'🎙'}
+        </button>
+      </div>
+      ${statusHtml}
+      ${sugHtml}
+      ${!hasVoice?'<div class="no-support-note">Voice input is available in Chrome and Edge only.</div>':''}
+    </div>
+  `;
+}
+
+function renderEscalation(){
+  return `
+    <div class="esc-panel" id="esc-panel">
+      <div class="esc-header">
+        <div>
+          <div class="esc-title">⚑ Log a Support Request</div>
+          <div class="esc-sub">Fill in the details, then copy and paste into your team chat to ask for help.</div>
+        </div>
+        <button class="btn" onclick="clearEsc()" style="flex-shrink:0;margin-left:12px">✕ Close</button>
+      </div>
+
+      <div class="esc-field">
+        <label for="esc-cid">Customer ID/CIS</label>
+        <input id="esc-cid" class="esc-input" type="text" placeholder="Leave blank - fill in after the call if needed" value="${escHtml(S.escCustId)}" oninput="S.escCustId=this.value">
+      </div>
+
+      <div class="esc-field">
+        <label for="esc-q">Question</label>
+        <textarea id="esc-q" class="esc-input" rows="3" placeholder="Describe the customer's problem in your own words…">${escHtml(S.escQuestion)}</textarea>
+      </div>
+
+      <div class="esc-field">
+        <label for="esc-ctx">Additional Information</label>
+        <textarea id="esc-ctx" class="esc-input" rows="2" placeholder="Account flags, what the customer said, any system messages…">${escHtml(S.escContext)}</textarea>
+      </div>
+
+      <div class="esc-field">
+        <label for="esc-res">Resources Used</label>
+        <textarea id="esc-res" class="esc-input" rows="2" placeholder="What you've already tried or checked…">${escHtml(S.escResources)}</textarea>
+      </div>
+
+      <div class="copy-row">
+        <button class="copy-btn${S.copyState==='copied'?' copied':''}" onclick="copyEscalation()">
+          ${S.copyState==='copied'?'✓ Copied!':'📋 Copy to team chat'}
+        </button>
+        <button class="clear-btn" onclick="clearEsc()">Cancel</button>
+      </div>
+      <div class="esc-notice">Formatted for Slack, Teams, or any team chat · Paste with Ctrl+V / ⌘V</div>
+    </div>
+  `;
+}
+
+function renderTopic(){
+  const t=topic(S.topicId);
+  const nId=S.nodeId||'pre';
+  const n=getNode(S.topicId,nId);
+
+  let bg='var(--white)',bdr='var(--bdr)',tagColor='var(--t3)',tagTxt='';
+  if(n.type==='action'){tagTxt='Action needed';tagColor='var(--brand)';bdr='var(--brand-mid)';bg='var(--brand-lt)';}
+  else if(n.type==='q'){tagTxt='Question';}
+  else if(n.type==='info'||n.type==='out'){
+    const sv=sevStyle(n.sev);tagTxt=n.type==='out'?sv.tag:'Note';tagColor=sv.color;bdr=sv.bdr;bg=sv.bg;
+  }
+
+  const bullets=n.bullets?`<ul class="step-bullets">${n.bullets.map(b=>`<li>${escHtml(b)}</li>`).join('')}</ul>`:'';
+  const trail=S.hist.slice(-5).map((h,i,a)=>
+    `<span class="trail-pill">${escHtml(h.label)}</span>${i<a.length-1?'<span class="trail-arrow">›</span>':''}`
+  ).join('');
+
+  let actions='';
+  if(n.type==='q'){
+    actions=`<div class="opts">${n.opts.map(o=>`<button class="btn-opt" onclick="gChoose('${o.n}','${escJs(o.l)}')">${escHtml(o.l)}</button>`).join('')}</div>`;
+  } else if((n.type==='action'||n.type==='info')&&n.n){
+    actions=`<button class="btn-p" onclick="gContinue()">Continue →</button>`;
+  } else {
+    // Terminal node - no Mark as Mastered, just navigation
+    actions=`<div class="cta-row">
+      <button class="btn-p" onclick="goHome()">← Back to Topics</button>
+      <button class="btn-s" onclick="resetFlow()">Start Flow Over</button>
+    </div>`;
+  }
+
+  return `
+    <div class="topbar">
+      <div>
+        <button class="btn-back" onclick="goHome()" style="margin-bottom:8px">← All Topics</button>
+        <div style="display:flex;align-items:center;gap:11px">
+          <div class="tc-icon" style="background:${t.bg};width:42px;height:42px;font-size:20px;border-radius:12px;flex-shrink:0">${t.icon}</div>
+          <div>
+            <div style="font-size:16px;font-weight:600">${escHtml(t.label)}</div>
+            <div style="font-size:12px;color:var(--t2);margin-top:1px">${escHtml(t.desc)}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="flow-body">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
+        <div style="font-size:11px;color:var(--t3)">Step ${S.hist.length+1}</div>
+        <div style="display:flex;gap:7px">
+          ${S.hist.length?`<button class="btn" onclick="gBack()">← Back</button>`:''}
+          <button class="btn" onclick="resetFlow()">Restart</button>
+        </div>
+      </div>
+      <div class="trail">${trail}</div>
+      <div class="step-card" style="background:${bg};border-color:${bdr}">
+        <div class="step-tag" style="color:${tagColor}">${tagTxt}</div>
+        <div class="step-text">${escHtml(n.text)}</div>
+        ${bullets}
+      </div>
+      ${actions}
+    </div>
+  `;
+}
+
+// ── ACTIONS ────────────────────────────────────────────────────
+function goHome(){S.screen='home';S.voiceState='idle';render();}
+
+function goTopic(id){
+  S.topicId=id;S.screen='topic';S.nodeId=null;S.hist=[];
+  S.voiceState='idle';S.transcript='';S.suggestions=[];
+  render();
+}
+
+function doSearch(v){
+  S.search=v;render();
+  const el=document.getElementById('srch');
+  if(el){el.focus();el.setSelectionRange(v.length,v.length);}
+}
+
+function gChoose(nextId,label){
+  S.hist.push({nodeId:S.nodeId||'pre',label});S.nodeId=nextId;render();window.scrollTo(0,0);
+}
+
+function gContinue(){
+  const cur=S.nodeId||'pre';
+  const n=getNode(S.topicId,cur);
+  if(n.n){S.hist.push({nodeId:cur,label:'Done'});S.nodeId=n.n;}
+  render();window.scrollTo(0,0);
+}
+
+function gBack(){if(S.hist.length){const p=S.hist.pop();S.nodeId=p.nodeId;render();}}
+function resetFlow(){S.nodeId=null;S.hist=[];render();}
+
+render();
+</script>
+</body>
+</html>
