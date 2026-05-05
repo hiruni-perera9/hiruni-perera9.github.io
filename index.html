@@ -20,13 +20,13 @@
     </div>
   </div>
 
-  <!-- Link to Training Hub — both files must be in the same folder -->
+  <!-- Link to Training Hub - both files must be in the same folder -->
   <a class="hub-link" href="creditcards.html" title="Open the Agent Training Hub">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
     </svg>
     Training Hub
-  </a><!-- Link to Training Hub — both files must be in the same folder -->
+  </a><!-- Link to Training Hub - both files must be in the same folder -->
 
   <a class="hub-link" href="cc-guide.html" title="Credit Card Guide">
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -37,7 +37,7 @@
 </div>
 
 <main class="app" role="main">
-  <h1 class="sr-only">Call flow guide — step-by-step decision helper for call centre agents</h1>
+  <h1 class="sr-only">Call flow guide - step-by-step decision helper for call centre agents</h1>
 
   <div class="topbar">
     <div>
@@ -69,10 +69,10 @@ const N = {
   not_id_namedob:{type:'q',text:"Does their full name and DOB match a profile?",opts:[{l:'Yes',n:'load_profile'},{l:'No',n:'not_id_sol'}]},
   not_id_sol:{type:'q',text:"Can you find a matching profile on SOL using their phone name / DOB?",opts:[{l:'Yes',n:'load_profile'},{l:'No',n:'o_refer'}]},
   load_profile:{type:'action',text:"Load their profile on Unity and confirm Full Name",n:'check_flags'},
-  check_flags:{type:'q',text:"Check headline info — are there any flags on the account?",hint:"Select the flag present. If none, select 'No flags'.",opts:[{l:'KYC Required',n:'o_kyc'},{l:'Extra Care',n:'flag_extra'},{l:'Revoked',n:'o_revoked'},{l:'Protected',n:'flag_protected'},{l:'"Community" in address',n:'check_caf'},{l:'No flags',n:'check_caf'}]},
-  flag_extra:{type:'info',sev:'warn',text:"Extra Care — check what they need and speak patiently. Call Extra Care if they are about to fail ID",hint:"Continue to CAF notes after noting this",n:'check_caf'},
-  flag_protected:{type:'info',sev:'info',text:"Protected — you may be able to do fund transfers for them",n:'check_caf'},
-  check_caf:{type:'q',text:"Check CAF Notes — were they previously handled by the Indigenous team?",opts:[{l:'Yes',n:'o_indigenous'},{l:'No',n:'caf_keyword'},{l:'No but "Community" is present in their address',n:'o_indigenous'}]},
+  check_flags:{type:'q',text:"Check headline info - are there any flags on the account?",hint:"Select the flag present. If none, select 'No flags'.",opts:[{l:'KYC Required',n:'o_kyc'},{l:'Extra Care',n:'flag_extra'},{l:'Revoked',n:'o_revoked'},{l:'Protected',n:'flag_protected'},{l:'"Community" in address',n:'check_caf'},{l:'No flags',n:'check_caf'}]},
+  flag_extra:{type:'info',sev:'warn',text:"Extra Care - check what they need and speak patiently. Call Extra Care if they are about to fail ID",hint:"Continue to CAF notes after noting this",n:'check_caf'},
+  flag_protected:{type:'info',sev:'info',text:"Protected - you may be able to do fund transfers for them",n:'check_caf'},
+  check_caf:{type:'q',text:"Check CAF Notes - were they previously handled by the Indigenous team?",opts:[{l:'Yes',n:'o_indigenous'},{l:'No',n:'caf_keyword'},{l:'No but "Community" is present in their address',n:'o_indigenous'}]},
   caf_keyword:{type:'q',text:"Is there a keyword in CAF Notes?",opts:[{l:'Yes',n:'keyword_type'},{l:'No',n:'caf_fraud'}]},
   keyword_type:{type:'q',text:"What type of keyword is it?",opts:[{l:'Must Quote Keyword',n:'keyword_read'},{l:'Special Keyword',n:'keyword_read'}]},
   keyword_read:{type:'action',text:"Read the keyword disclosure and ask the customer the keyword",n:'keyword_correct'},
@@ -85,22 +85,30 @@ const N = {
   inq_general:{type:'q',text:"Is it a general inquiry?",opts:[{l:'Yes',n:'o_website'},{l:'No',n:'inq_adv'}]},
   inq_adv:{type:'q',text:"Is it in the list of Advanced ID inquiries?",opts:[{l:'Yes',n:'o_advanced_id'},{l:'No',n:'o_full_id'}]},
   red_caf:{type:'action',text:"Check CAF Notes for the reason they are suspended",n:'red_reason'},
-  red_reason:{type:'q',text:"What is the reason for suspension?",opts:[{l:'ID Failed',n:'red_today'},{l:'Must Quote Keyword Failed',n:'red_mqk'},{l:'Special Keyword Failed',n:'red_mqk'}]},
-  red_today:{type:'q',text:"Did they fail today?",opts:[{l:'Yes',n:'o_callback'},{l:'No',n:'o_advanced_id'}]},
-  red_mqk:{type:'q',text:"Refer to branch. Do they refuse to go?",opts:[{l:'They accept — going to branch',n:'o_refer'},{l:'They refuse to go',n:'o_digi_fraud'}]},
+  red_reason:{
+    type:'q',text:"What is the reason for suspension?",
+    opts:[
+      {l:'ID Failed',n:'red_today'},
+      {l:'CAF Keyword Failed',n:'red_mqk'}]},
+      
+  red_today:{type:'q',text:"Did they fail today?",opts:[{l:'Yes',n:'o_callback'},{l:'No',n:'callback_mob'}]},
+
+  red_mqk:{type:'q',text:"Refer to branch. Do they refuse to go?",opts:[{l:'They accept - going to branch',n:'o_refer'},{l:'They refuse to go',n:'o_digi_fraud'}]},
   o_refer:{type:'out',sev:'danger',text:"Refer to Branch"},
-  o_kyc:{type:'out',sev:'danger',text:"Get PTT to ID Secure or KYC Team"},
+  o_kyc:{type:'out',sev:'transfer',text:"Get PTT to ID Secure or KYC Team"},
   o_revoked:{type:'out',sev:'danger',text:"Refer to Branch",hint:"Account is revoked"},
   o_refer_100pts:{type:'out',sev:'danger',text:"Refer to Branch with 100 pts of ID"},
-  o_indigenous:{type:'out',sev:'info',text:"Get PTT to Indigenous Team"},
-  o_business:{type:'out',sev:'info',text:"Get PTT to Business from Support"},
-  o_ptt_relevant:{type:'out',sev:'info',text:"Get PTT to Relevant Team from Support"},
+  o_indigenous:{type:'out',sev:'transfer',text:"Get PTT to Indigenous Team"},
+  o_business:{type:'out',sev:'transfer',text:"Get PTT to Business from Support"},
+  o_ptt_relevant:{type:'out',sev:'transfer',text:"Get PTT to Relevant Team from Support"},
   o_digital:{type:'out',sev:'success',text:"Check the Online & Mobile Banking Hub / Digital First to guide them"},
   o_website:{type:'out',sev:'success',text:"Check Website / OBI and T&Cs"},
-  o_advanced_id:{type:'out',sev:'info',text:"Take them to Advanced ID"},
+  callback_mob:{type:'q',text:"Are they callling through the mobile app?",opts:[{l:'Yes',n:'o_advanced_id'},{l:'No',n:'o_callback_mob'}]},
+  o_callback_mob:{type:'out',sev:'warn',text:"Ask them to call back through the mobile app"},
+  o_advanced_id:{type:'out',sev:'info',text:"Go to SOL → Service Customer → Internet/Telephone Banking and unsuspend tel banking. Then take them to Advanced ID"},
   o_full_id:{type:'out',sev:'info',text:"Take them to Full ID"},
-  o_callback:{type:'out',sev:'warn',text:"Ask them to call back tomorrow, or refer to branch"},
-  o_digi_fraud:{type:'out',sev:'danger',text:"PTT to Digi Fraud"},
+  o_callback:{type:'out',sev:'warn',text:"Ask them to call back tomorrow through the mobile app, or refer to branch"},
+  o_digi_fraud:{type:'out',sev:'transfer',text:"PTT to Digi Fraud"},
 };
 
 
@@ -108,7 +116,8 @@ const SEV = {
   danger:  {tag:'Escalate', color:'var(--danger-text)',  border:'var(--danger-bdr)',  bg:'var(--danger-bg)'},
   warn:    {tag:'Caution',  color:'var(--warning-text)', border:'var(--warning-bdr)', bg:'var(--warning-bg)'},
   success: {tag:'Outcome',  color:'var(--success-text)', border:'var(--success-bdr)', bg:'var(--success-bg)'},
-  info:    {tag:'Transfer', color:'var(--info-text)',     border:'var(--info-bdr)',    bg:'var(--info-bg)'},
+  info:    {tag:'Action', color:'var(--info-text)',     border:'var(--info-bdr)',    bg:'var(--info-bg)'},
+  transfer:    {tag:'Transfer', color:'var(--trans-text)',     border:'var(--trans-bdr)',    bg:'var(--trans-bg)'},
 };
 
 let hist = [], cur = 'start';

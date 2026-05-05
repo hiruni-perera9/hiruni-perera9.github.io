@@ -14,6 +14,8 @@
 const TOPICS = [
   {id:'interest',   icon:'📈', bg:'#fff1f0', label:'How Interest Accrues',        sub:'Daily accrual, when it posts to your statement'},
   {id:'statement',  icon:'🧾', bg:'#ededff', label:'Reading a Statement',          sub:'Every section explained simply'},
+  {id:'paid_check', icon:'✅', bg:'#e6f5f4', label:'Did They Pay in Full?',        sub:'3-number check - ignore all the transactions'},
+  {id:'fees',       icon:'💸', bg:'#f3f0ff', label:'Fees & Interest Charges',      sub:'Every charge type explained- what it is & why it appears'},
   {id:'balance_xfr',icon:'🔄', bg:'#e8f7f2', label:'Balance Transfers (In Progress)',            sub:'How they work and what to watch for'},
   {id:'smartplan',  icon:'📋', bg:'#fffbf0', label:'SmartPlan (In Progress)',                    sub:'How it splits your balance and appears on your statement'},
   {id:'partpay',    icon:'⚡', bg:'#fdf0ed', label:'PartPay (In Progress)',                      sub:'4 payments, 0% interest - what agents need to know'},
@@ -470,10 +472,494 @@ function renderHome(){
     </div>`;
 }
 
+function renderFees(){
+
+  function feeBlock(title, accent, type, fields, avoidTip, agentQ, agentA, src){
+
+    // Amount pill — first field's value shown as a badge in the header
+    const amountPill = fields[0][1];
+
+    // Data rows — label left, value+note right
+    const rows = fields.slice(1).map(([label, val, note]) => `
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;
+                  padding:7px 0;border-bottom:.5px solid rgba(26,27,75,.06);gap:12px">
+        <span style="font-size:11px;color:#7a7b9a;line-height:1.45;flex-shrink:0;
+                     min-width:90px">${label}</span>
+        <span style="font-size:11px;font-weight:500;text-align:right;color:#1A1B4B;
+                     line-height:1.45">${val}${note
+          ? `<br><span style='font-size:9px;color:#9596b2;font-weight:400'>${note}</span>`
+          : ''}</span>
+      </div>`).join('');
+
+    return `
+      <div style="border-radius:var(--rl);overflow:hidden;margin-bottom:14px;
+                  border:1px solid rgba(26,27,75,.11);
+                  box-shadow:0 2px 12px rgba(26,27,75,.07),0 1px 3px rgba(26,27,75,.05)">
+
+        <!-- ── HEADER ── -->
+        <div style="display:flex;align-items:center;justify-content:space-between;
+                    gap:12px;padding:.85rem 1rem .8rem 1.1rem;
+                    border-left:5px solid ${accent};background:#fff;
+                    border-bottom:1px solid rgba(26,27,75,.08)">
+          <div>
+            <div style="font-size:9px;text-transform:uppercase;letter-spacing:.14em;
+                        font-weight:700;color:${accent};margin-bottom:4px">
+              ${type === 'interest' ? 'Interest charge' : 'Fee'}
+            </div>
+            <div style="font-size:15px;font-weight:700;color:#1A1B4B;
+                        letter-spacing:-.02em;line-height:1.2">${title}</div>
+          </div>
+          <div style="flex-shrink:0;background:${accent}18;border:1px solid ${accent}44;
+                      border-radius:8px;padding:5px 11px;text-align:right">
+            <div style="font-size:9px;color:${accent};font-weight:600;
+                        text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px">Amount</div>
+            <div style="font-size:12px;font-weight:700;color:${accent};
+                        white-space:nowrap">${amountPill}</div>
+          </div>
+        </div>
+
+        <!-- ── DATA ROWS ── -->
+        <div style="padding:.7rem 1rem .5rem 1.1rem;background:#fafafa;
+                    border-left:5px solid ${accent}30">${rows}</div>
+
+        <!-- ── HOW TO AVOID ── -->
+        <div style="padding:.65rem 1rem .65rem 1.1rem;
+                    background:#f0faf4;border-left:5px solid #1a7a41;
+                    border-top:.5px solid #c8ead4">
+          <span style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;
+                       font-weight:700;color:#1a7a41;margin-right:6px">How to avoid</span>
+          <span style="font-size:11px;color:#2d6a41;line-height:1.5">${avoidTip}</span>
+        </div>
+
+        <!-- ── AGENT TIP ── -->
+        ${agentQ ? `
+        <div style="padding:.75rem 1rem .75rem 1.1rem;
+                    background:linear-gradient(135deg,#1A1B4B 0%,#23245c 100%);
+                    border-left:5px solid ${accent};border-top:.5px solid rgba(255,255,255,.06)">
+          <div style="font-size:9px;text-transform:uppercase;letter-spacing:.14em;
+                      color:${accent};font-weight:700;margin-bottom:6px">Agent tip</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.55);font-style:italic;
+                      margin-bottom:5px;line-height:1.45">&ldquo;${agentQ}&rdquo;</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.9);line-height:1.6">${agentA}</div>
+        </div>` : ''}
+
+        <!-- ── SOURCE ── -->
+        <div style="padding:.4rem 1rem .4rem 1.1rem;background:#f4f4f8;
+                    border-top:.5px solid rgba(26,27,75,.08);border-left:5px solid #d0d0e0;
+                    font-size:9px;color:#9596b2;letter-spacing:.01em">
+          📄 ${src}
+        </div>
+      </div>`;
+  }
+
+  // ── Section divider helper ──────────────────────────────────────────────────
+  function sectionHead(label, count, color){
+    return `
+      <div style="display:flex;align-items:center;gap:10px;margin:1.5rem 0 .75rem">
+        <div style="width:4px;height:28px;background:${color};border-radius:99px;flex-shrink:0"></div>
+        <div>
+          <div style="font-size:14px;font-weight:700;color:#1A1B4B;line-height:1">${label}</div>
+          <div style="font-size:10px;color:#9596b2;margin-top:2px">${count} type${count!==1?'s':''}</div>
+        </div>
+      </div>`;
+  }
+
+  return `
+  <div class="section-lbl">How to use this page</div>
+  <div class="box blue"><div class="box-lbl">Two types of charges</div>
+    Every charge on a Westpac credit card is either a <strong>fee</strong> (fixed, event-based) or <strong>interest</strong> (daily percentage on what's owed). They have different causes and appear in different places on the statement.
+  </div>
+
+  ${sectionHead('Interest Charges', 4, '#e84545')}
+
+  ${feeBlock('Purchase Interest',       '#d63b3b', 'interest',
+    [['Amount',         'Up to 20.99% p.a.'],
+     ['Rates by card',  'Altitude Platinum / Black / Low Fee: 20.99% p.a.<br>Low Rate Card: 13.74% p.a.<br>Westpac Lite: 9.90% p.a.',''],
+     ['Starts from',    'Day of the purchase','Subject to interest-free period'],
+     ['Applies to',     'All 5 Westpac credit cards','Different rates per card'],
+     ['When it appears','Statement AFTER a period where the full required amount was not paid by the due date',''],
+    ],
+    'Pay the full Closing Balance (or Monthly Payment Balance if SmartPlan/BT/PartPay is active) by the due date every month.',
+    'I paid my card — why is there still interest on my statement?',
+    'Check the statement from last month. If the full required amount was not paid in full by the due date, interest accrued on the outstanding balance and posts to the next statement. See the "Did They Pay in Full?" guide for the exact check procedure.',
+    'Westpac Credit Card T&Cs — Clause 5.1–5.3, pp.13–17'
+  )}
+
+  ${feeBlock('Cash Advance Interest',   '#c43030', 'interest',
+    [['Amount',         '21.99% p.a.', 'Higher than the purchase rate on all cards'],
+     ['No interest-free period', 'Interest starts from the day of the transaction — regardless of whether the account is otherwise interest-free',''],
+     ['Applies to',     'Altitude Platinum, Altitude Black, Low Fee, Low Rate',''],
+     ['Not available on','Westpac Lite','Cash advances are not offered on Lite'],
+     ['Also charged',   'A 3.5% cash advance fee applies in addition to this interest','Both the fee AND interest apply from day one'],
+    ],
+    'Use a debit card for all cash withdrawals. Cash advances on a credit card are one of the most expensive ways to access money.',
+    'Why is my cash withdrawal being charged more interest than my purchases?',
+    'Cash advances attract 21.99% interest starting from the day of withdrawal — there is no interest-free period. On top of that, a 3.5% transaction fee also applies. Both start immediately. A debit card is always cheaper for cash.',
+    'Westpac Credit Card T&Cs — Clause 5.1, Table 1 & 2'
+  )}
+
+  ${feeBlock('Balance Transfer Interest','#b52878', 'interest',
+    [['Amount',         'Promotional rate at time of transfer — often 0% for a set term','Reverts to standard rate when promo ends'],
+     ['Starts from',    'Day the balance is transferred to the account','No interest-free period on Balance Transfers'],
+     ['At promo end',   'Remaining BT balance reverts to Purchase or Cash Advance Balance and attracts standard rate','Per the original offer terms'],
+     ['Applies to',     'Altitude Platinum, Altitude Black, Low Fee, Low Rate',''],
+     ['Not available on','Westpac Lite','Balance transfers not offered on Lite'],
+    ],
+    'Pay off the Balance Transfer balance before the promotional period ends. Set a calendar reminder for the expiry date.',
+    'My 0% balance transfer is now being charged interest — why?',
+    'The promotional period has ended. Any remaining balance has reverted to the standard rate. Check the original offer terms for the exact end date. The customer should factor in the remaining BT balance in their monthly payment going forward.',
+    'Westpac Credit Card T&Cs — Clause 5.1, Table 2'
+  )}
+
+  ${feeBlock('SmartPlan Interest',      '#9b5de5', 'interest',
+    [['Amount',         'Varies — disclosed at time of SmartPlan setup',''],
+     ['Starts from',    'Day the SmartPlan is activated','Included in the instalment calculation'],
+     ['Applies to',     'Altitude Platinum, Altitude Black, Low Fee, Low Rate',''],
+     ['If plan ends early','Remaining balance reverts to the original balance category (Purchase / Cash Advance / BT) and attracts that rate',''],
+    ],
+    'Review the SmartPlan rate at setup and compare it to the purchase rate. For Altitude or Low Fee cards at 20.99%, SmartPlan may offer a lower structured rate.',
+    'I cancelled my SmartPlan — why is there still interest?',
+    'When a SmartPlan is cancelled or expires with an outstanding balance, that balance moves back to the Main Account Balance and starts attracting the standard rate for where it originated (usually the purchase rate). The interest from this point is ordinary purchase interest, not a SmartPlan charge.',
+    'Westpac Credit Card T&Cs — Clause 7.3 & 7.7, pp.19–21'
+  )}
+
+  ${sectionHead('Fees', 7, '#4A4AF9')}
+
+  ${feeBlock('Annual / Monthly Card Fee','#4A4AF9', 'fee',
+    [['Amount',         '$108–$295/yr depending on card'],
+     ['Altitude Platinum','$175 per year',''],
+     ['Altitude Black',  '$295 per year',''],
+     ['Low Fee Card',    '$0 or $30 per year','$0 if $5,000+ in eligible purchases in each 12-month period from Card Fee date'],
+     ['Low Rate Card',   '$59/yr now → $7/month from 29 June 2026','$84/yr under new structure'],
+     ['Westpac Lite',    '$9 per month ($108/yr)','Charged monthly, not as a single annual amount'],
+     ['Interest on fee', 'Accrues at the purchase rate from the day after it is posted if not paid',''],
+    ],
+    'There is no way to avoid the annual fee on most cards. The Low Fee Card fee is waived each year if $5,000+ in eligible purchases is met.',
+    'Why has an annual fee appeared when I barely used my card?',
+    'The annual card fee is charged regardless of transaction activity. It appears as a line item on the statement and accrues interest at the purchase rate if not included in the monthly payment. It is not a usage-based charge.',
+    'Westpac Credit Card T&Cs — Clause 5.1 / westpac.com.au fees page'
+  )}
+
+  ${feeBlock('Foreign Transaction Fee', '#0d9e8a', 'fee',
+    [['Amount',         '3% of AUD value', 'On all cards except Westpac Lite'],
+     ['What triggers it','Any transaction in a foreign currency, OR processed by an overseas merchant or financial institution — even if the customer is physically in Australia','e.g. overseas websites, US-billed subscriptions'],
+     ['Not charged on', 'Westpac Lite Card — $0 FX fee (key selling point)',''],
+     ['Also note',      'If a merchant offers Dynamic Currency Conversion (converts to AUD at their rate), the FX fee may still apply',''],
+    ],
+    'Recommend the Westpac Lite Card for overseas travel and online shopping with overseas merchants — it is the only Westpac credit card with no FX fee.',
+    'Why was I charged a fee on my online purchase? I was in Australia.',
+    'If the merchant or its payment processor is based overseas, the transaction is classified as foreign even if the customer is in Australia. Common examples: US-based streaming services, overseas retailers, or Australian businesses that route payments offshore. The 3% fee applies in all these cases.',
+    'Westpac Credit Card T&Cs — Clause 3.4, p.10 / westpac.com.au fees page'
+  )}
+
+  ${feeBlock('Cash Advance Fee',        '#d63b3b', 'fee',
+    [['Amount',         '3.5% per transaction', 'Effective 30 April 2026, increased from 3%'],
+     ['What triggers it','ATM cash withdrawals · Gambling merchants · Foreign currency / traveller\'s cheques / money orders · Fund transfers to bank or prepaid accounts · Bill payments over the counter · Stored value card purchases','Westpac classifies these using Visa/Mastercard merchant codes'],
+     ['When charged',   'Posted on the day of the transaction',''],
+     ['Interest too',   'The fee itself then accrues cash advance interest at 21.99% from the day it is posted','Both the 3.5% fee AND 21.99% interest apply'],
+     ['Not available on','Westpac Lite',''],
+    ],
+    'Use a debit card for cash withdrawals. Never use a credit card at gambling merchants or to purchase foreign currency.',
+    'I withdrew $200 — why is my fee higher than I expected?',
+    '3.5% of $200 = $7 in fees. On top of that, both the $200 and the $7 fee immediately start attracting 21.99% cash advance interest from day one. Over a month that adds further cost. A debit card withdrawal has no fee and no interest.',
+    'Westpac Credit Card T&Cs — Clause 5.1 / Fee change effective 30 April 2026'
+  )}
+
+  ${feeBlock('Missed Payment Fee',      '#b52b1c', 'fee',
+    [['Amount',         '$20 per statement cycle', 'Effective 30 April 2026, increased from $15'],
+     ['What triggers it','Minimum Payment Due not paid in full by the due date',''],
+     ['When charged',   'Applied in the following statement cycle',''],
+     ['Not charged on', 'Westpac Lite Card — $0 missed payment fee',''],
+     ['Interest on fee','Added to Purchase Balance — accrues purchase interest from the day it is posted',''],
+    ],
+    'Set up Autopay at westpac.com.au/autopay to pay at least the Monthly Payment or Minimum Payment Due automatically each cycle.',
+    'I got charged a late fee but I did make a payment.',
+    'A payment was received but it may have been less than the Minimum Payment Due, or it may not have cleared by the due date. Check the statement: compare the Minimum Payment Due amount with what was received, and verify the payment date against the due date. Both the amount AND the timing must be correct to avoid the fee.',
+    'Westpac Credit Card T&Cs — Clause 6.1, p.18 / Fee change effective 30 April 2026'
+  )}
+
+  ${feeBlock('Balance Transfer Fee',    '#0d77b5', 'fee',
+    [['Amount',         'Varies by offer', 'Disclosed in the promotional offer at time of application'],
+     ['What it is',     'An upfront percentage fee on the amount transferred','Typically 1–3% of the transferred balance'],
+     ['When charged',   'Posted to the account when the balance transfer is processed',''],
+     ['Refundable?',    'No — non-refundable once the transfer is processed',''],
+     ['Interest on fee','Added to the Balance Transfer Balance and accrues at the BT rate',''],
+     ['Not available on','Westpac Lite',''],
+    ],
+    'Compare the BT fee against the interest savings. A 2% upfront fee is often still worthwhile vs. ongoing 20.99% purchase interest.',
+    'Can I get the balance transfer fee refunded?',
+    'No. The balance transfer fee is non-refundable once processed. It was disclosed in the offer terms before acceptance and cannot be waived after the fact.',
+    'Westpac Credit Card T&Cs — Clause 5.1, Table 1 / Offer terms at time of application'
+  )}
+
+  ${feeBlock('Rewards Program Fee',     '#c07a10', 'fee',
+    [['Amount',         '$75 per year', 'Applies only for Qantas or Velocity programs'],
+     ['Applies to',     'Altitude Platinum and Altitude Black on Qantas or Velocity programs only',''],
+     ['Not charged on', 'Altitude Rewards program (Altitude Points) — no rewards fee',''],
+     ['Total cost',     'Altitude Qantas / Velocity Platinum: $175 + $75 = $250/yr<br>Altitude Qantas / Velocity Black: $295 + $75 = $370/yr',''],
+    ],
+    'If cost is the concern, the Altitude Rewards program has no rewards fee. Compare whether the Qantas/Velocity earn rate justifies the $75 premium.',
+    'Why am I paying $250/year? I thought the card was $175.',
+    'The $175 is the base annual card fee. The additional $75 is the Rewards Program Fee charged specifically for earning Qantas or Velocity Frequent Flyer Points. If the customer switches to the Altitude Rewards program instead, the $75 fee does not apply and they would pay $175 only.',
+    'Westpac Altitude T&Cs — Clause 3.3, p.6 / westpac.com.au fees page'
+  )}
+
+  ${feeBlock('Overlimit Fee',           '#6b7280', 'fee',
+    [['Amount',         '$15', 'Legacy accounts only — pre-4 June 2012'],
+     ['Applies to',     'Credit card accounts opened BEFORE 4 June 2012 only',''],
+     ['Not charged on', 'Accounts opened on or after 4 June 2012 — most active accounts will not see this',''],
+     ['When charged',   'When the credit limit is exceeded during a cycle, and at the start of a new cycle if still over limit',''],
+    ],
+    'Stay within the credit limit. Request a limit increase if the customer regularly approaches their ceiling.',
+    'I\'ve been charged an overlimit fee but I didn\'t know I was over my limit.',
+    'Some transactions process even when the account is at or near the limit (e.g. pending authorisations). If the account was opened before June 2012, this fee may apply. For newer accounts, there is no overlimit fee. Confirm the account opening date to clarify. Reference: Clause 3.6.',
+    'Westpac Credit Card T&Cs — Clause 3.6, pp.11–12 / westpac.com.au fees page'
+  )}
+
+  <!-- QUICK REFERENCE TABLE -->
+  <div class="section-lbl" style="margin-top:.25rem">Quick reference — all charges at a glance</div>
+  <div style="overflow-x:auto;border-radius:var(--rl);border:1px solid rgba(26,27,75,.12);margin-bottom:9px;
+              box-shadow:0 2px 8px rgba(26,27,75,.06)">
+    <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:480px">
+      <thead><tr style="background:#1A1B4B;color:#fff">
+        <th style="padding:9px 11px;text-align:left;font-weight:600;font-size:10px;letter-spacing:.04em">Charge</th>
+        <th style="padding:9px 11px;text-align:left;font-weight:600;font-size:10px;letter-spacing:.04em">Amount</th>
+        <th style="padding:9px 11px;text-align:left;font-weight:600;font-size:10px;letter-spacing:.04em">Avoidable?</th>
+        <th style="padding:9px 11px;text-align:left;font-weight:600;font-size:10px;letter-spacing:.04em">Westpac Lite?</th>
+      </tr></thead>
+      <tbody>
+        ${[
+          ['Purchase interest',    'Up to 20.99%',     '✓ Pay in full on time',          '✗ (9.90%)'],
+          ['Cash advance interest','21.99%',            '✓ Use debit card',               '✓ Not offered'],
+          ['BT interest',         'Promo → standard',  '✓ Pay off before promo ends',    '✓ Not offered'],
+          ['SmartPlan interest',  'Varies',             'Partially',                      '✓ Not offered'],
+          ['Annual/monthly fee',  '$108–$295/yr',       'Partially (Low Fee waiver)',      '✗ ($9/mo)'],
+          ['Foreign txn fee',     '3%',                 '✓ Use Westpac Lite',             '✓ $0'],
+          ['Cash advance fee',    '3.5%',               '✓ Use debit card',               '✓ Not offered'],
+          ['Missed payment fee',  '$20',                '✓ Set up Autopay',               '✓ $0'],
+          ['BT fee',              'Varies by offer',    'Partially',                      '✓ Not offered'],
+          ['Rewards program fee', '$75/yr',             '✓ Use Altitude Rewards instead', 'n/a'],
+          ['Overlimit fee',       '$15 (legacy only)',  '✓ Stay under credit limit',      'n/a'],
+        ].map(([charge,amt,avoid,lite],i)=>`
+          <tr style="border-bottom:.5px solid rgba(26,27,75,.07);${i%2===0?'background:#fff':'background:#f8f8fc'}">
+            <td style="padding:7px 11px;color:#1A1B4B;font-weight:500">${charge}</td>
+            <td style="padding:7px 11px;color:#5a5b7a;font-variant-numeric:tabular-nums">${amt}</td>
+            <td style="padding:7px 11px;color:${avoid.startsWith('✓')?'#1a7a41':'#9596b2'}">${avoid}</td>
+            <td style="padding:7px 11px;color:${lite.startsWith('✓')?'#1a7a41':lite==='n/a'?'#c0c0cc':'#5a5b7a'}">${lite}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>
+  <div style="font-size:10px;color:#9596b2;padding:.25rem 0 .5rem;line-height:1.6">
+    Sources: Westpac Credit Card T&Cs (27 June 2024) &middot; Westpac Altitude T&Cs (12 June 2024) &middot; westpac.com.au/personal-banking/credit-cards/manage/fees-interest/minimising-fees/ &middot; Fee changes effective 30 April 2026
+  </div>`;
+}
+
+
+
+function renderPaidCheck(){
+  // Helper to render a statement row with optional highlight and callout badge
+  const row = (label, amount, cls='', badge='') => `
+    <div class="stmt-row ${cls}">
+      <span class="stmt-label" style="display:flex;align-items:center;gap:7px">
+        ${badge ? `<span class="stmt-callout" style="background:${badge.color}">${badge.n}</span>` : ''}
+        ${label}
+      </span>
+      <span class="stmt-amount ${cls.includes('neg')?'neg':cls.includes('interest')?'interest':cls.includes('brand')?'brand':''}">${amount}</span>
+    </div>`;
+
+  return `
+  <div class="section-lbl">The core idea</div>
+  <div class="box blue"><div class="box-lbl">Start with the date window, then check 3 numbers</div>
+    To check if a customer paid in full, you only need <strong>3 numbers</strong> from last month’s statement. 
+    Then narrow the account history to the period between the <strong>statement start date</strong> and the <strong>payment due date</strong>.
+    <br><br>
+    Once you are in that window, ignore normal purchases like groceries, petrol, dining, and subscriptions. Only focus on items that affect <strong>payments, credits, or the required balance</strong>.
+  </div>
+
+  <!-- DATE WINDOW -->
+  <div class="section-lbl">Step 0 - zero in on the right period first</div>
+  <div style="background:var(--surface);border-radius:var(--rl);padding:1rem;margin-bottom:12px;font-size:12px;line-height:1.65">
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;gap:10px;align-items:flex-start">
+        <div style="width:22px;height:22px;border-radius:99px;background:var(--navy);color:#fff;font-size:11px;font-weight:700;display:grid;place-items:center;flex-shrink:0;margin-top:1px">1</div>
+        <div><strong>Find the statement start date.</strong><br><span style="color:var(--t2)">This is the beginning of the statement period. Payments before this date usually belong to the previous cycle, so do not start scanning too early.</span></div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start">
+        <div style="width:22px;height:22px;border-radius:99px;background:var(--brand);color:#fff;font-size:11px;font-weight:700;display:grid;place-items:center;flex-shrink:0;margin-top:1px">2</div>
+        <div><strong>Find the payment due date.</strong><br><span style="color:var(--t2)">This is the deadline. Payments after this date may reduce the balance, but they do not count as paid on time for that statement.</span></div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-start">
+        <div style="width:22px;height:22px;border-radius:99px;background:var(--green);color:#fff;font-size:11px;font-weight:700;display:grid;place-items:center;flex-shrink:0;margin-top:1px">3</div>
+        <div><strong>Search only inside that window.</strong><br><span style="color:var(--t2)">Once the date range is narrowed, the payments are much easier to spot because you are no longer scanning the whole account history like a detective with no budget.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="position:relative;margin:1.3rem 0 1.6rem;padding:0 8px">
+    <div style="height:8px;background:linear-gradient(90deg,var(--navy),var(--brand),var(--green));border-radius:99px;position:relative"></div>
+    <div style="display:flex;justify-content:space-between;margin-top:9px;font-size:10px;color:var(--t2)">
+      <span><strong>1 Feb</strong><br>Statement starts</span>
+      <span style="text-align:center"><strong>28 Feb</strong><br>Statement closes</span>
+      <span style="text-align:right"><strong>15 Mar</strong><br>Payment due</span>
+    </div>
+    <div style="text-align:center;margin-top:8px;font-size:11px;color:var(--brand);font-weight:600">Scan this window for payments and credits</div>
+  </div>
+
+  <!-- THE 3 NUMBERS -->
+  <div class="section-lbl">The 3 numbers that matter</div>
+  <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
+    ${[
+      ['1','#1a7a41','Required payment amount','The amount they <em>needed</em> to pay. This is either the <strong>Closing Balance</strong> (standard) or the <strong>Monthly Payment Balance</strong> if they have a SmartPlan, Balance Transfer, or PartPay Card.'],
+      ['2','#4A4AF9','Payment received','The amount they actually paid, shown as a negative credit (e.g. −$1,200.00). Add all payments posted inside the statement-start-to-due-date window. Use the <strong>posted/cleared date</strong>, not when the customer says they initiated the payment.'],
+      ['3','#92600a','Due date','The deadline the payment had to clear by. Paying after this date breaks the interest-free period even if the amount was correct.'],
+    ].map(([n,col,title,text])=>`
+      <div style="display:flex;gap:11px;align-items:flex-start;padding:10px 12px;background:var(--surface);border-radius:var(--r)">
+        <div style="width:22px;height:22px;border-radius:99px;background:${col};color:#fff;font-size:11px;font-weight:700;display:grid;place-items:center;flex-shrink:0;margin-top:1px">${n}</div>
+        <div><div style="font-size:12px;font-weight:600;color:var(--t1);margin-bottom:3px">${title}</div><div style="font-size:12px;color:var(--t2);line-height:1.55">${text}</div></div>
+      </div>`).join('')}
+  </div>
+
+  <!-- WHICH FIGURE TO USE -->
+  <div class="section-lbl">Step 1 - which "required payment" figure to use?</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:12px">
+    <div style="background:var(--green-bg);border:1px solid var(--green-bdr);border-radius:var(--rl);padding:.9rem">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--green);margin-bottom:.5rem">Standard account</div>
+      <div style="font-size:13px;color:var(--t1);line-height:1.5">No SmartPlan, no Balance Transfer, no PartPay Card active</div>
+      <div style="margin-top:.6rem;font-size:13px;font-weight:600;color:var(--green)">→ Look for: Closing Balance</div>
+    </div>
+    <div style="background:var(--brand-lt);border:1px solid var(--brand-mid);border-radius:var(--rl);padding:.9rem">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--brand);margin-bottom:.5rem">Has SmartPlan / BT / PartPay</div>
+      <div style="font-size:13px;color:var(--t1);line-height:1.5">Any of these features active on the account</div>
+      <div style="margin-top:.6rem;font-size:13px;font-weight:600;color:var(--brand)">→ Look for: Monthly Payment Balance</div>
+    </div>
+  </div>
+
+  <!-- SCENARIO A: PAID IN FULL -->
+  <div class="section-lbl">Scenario A - paid in full ✓</div>
+  <div class="stmt" style="margin-bottom:5px">
+    <div class="stmt-head"><span class="stmt-head-title">February Statement</span><span class="stmt-head-sub">Period: 1 Feb – 28 Feb · Due: 15 Mar</span></div>
+    <div class="stmt-row" style="opacity:.4"><span class="stmt-label" style="font-style:italic;font-size:11px">… purchases inside the period (skip unless payment/credit related) …</span><span></span></div>
+    ${row('Closing Balance','$1,200.00','total',{n:'1',color:'#1a7a41'})}
+    ${row('Payment received - 12 Mar','−$1,200.00','highlight-green',{n:'2',color:'#4A4AF9'})}
+    ${row('Due date','15 Mar','')}
+  </div>
+  <div class="box green" style="margin-bottom:14px"><div class="box-lbl">✓ Paid in full - on time</div>
+    Payment (−$1,200) = Closing Balance ($1,200). Payment cleared on 12 Mar, which falls inside the statement-start-to-due-date window and before the due date. Interest-free period is maintained.
+    <br><br>
+    If interest appears on the next statement, it may be <strong>residual interest</strong>: interest that was already accruing before the payment was made and only appeared on the following statement.
+  </div>
+
+  <!-- SCENARIO B: PARTIAL PAYMENT -->
+  <div class="section-lbl">Scenario B - paid partially ✗</div>
+  <div class="stmt" style="margin-bottom:5px">
+    <div class="stmt-head"><span class="stmt-head-title">February Statement</span><span class="stmt-head-sub">Period: 1 Feb – 28 Feb · Due: 15 Mar</span></div>
+    <div class="stmt-row" style="opacity:.4"><span class="stmt-label" style="font-style:italic;font-size:11px">… purchases inside the period (skip unless payment/credit related) …</span><span></span></div>
+    ${row('Closing Balance','$1,200.00','total',{n:'1',color:'#1a7a41'})}
+    ${row('Payment received - 12 Mar','−$500.00','highlight-amber',{n:'2',color:'#4A4AF9'})}
+    ${row('Due date','15 Mar','')}
+  </div>
+  <div class="box amber" style="margin-bottom:14px"><div class="box-lbl">✗ Not paid in full</div>
+    Payment (−$500) &lt; Closing Balance ($1,200). The $700 shortfall means the required amount was not covered by the due date. Interest can appear on the next statement. This is one of the common causes of "I paid but still got charged interest."
+  </div>
+
+  <!-- SCENARIO C: PAID LATE -->
+  <div class="section-lbl">Scenario C - paid in full but late ✗</div>
+  <div class="stmt" style="margin-bottom:5px">
+    <div class="stmt-head"><span class="stmt-head-title">February Statement</span><span class="stmt-head-sub">Period: 1 Feb – 28 Feb · Due: 15 Mar</span></div>
+    <div class="stmt-row" style="opacity:.4"><span class="stmt-label" style="font-style:italic;font-size:11px">… purchases inside the period (skip unless payment/credit related) …</span><span></span></div>
+    ${row('Closing Balance','$1,200.00','total',{n:'1',color:'#1a7a41'})}
+    ${row('Payment received - 19 Mar','−$1,200.00','highlight-red',{n:'2',color:'#4A4AF9'})}
+    ${row('Due date','15 Mar (payment cleared 4 days late)','')}
+  </div>
+  <div class="box red" style="margin-bottom:14px"><div class="box-lbl">✗ Correct amount, wrong timing</div>
+    Payment amount matches, but it cleared on 19 Mar, after the 15 Mar due date. Interest can apply because the required amount was not cleared by the deadline. Amount correct does not mean interest-free if the timing is wrong.
+  </div>
+
+  <!-- SCENARIO D: DID NOT MEET MINIMUM PAYMENT -->
+<div class="section-lbl">Scenario D - minimum payment not met ✗</div>
+<div class="stmt" style="margin-bottom:5px">
+  <div class="stmt-head">
+    <span class="stmt-head-title">February Statement</span>
+    <span class="stmt-head-sub">Period: 1 Feb – 28 Feb · Due: 15 Mar</span>
+  </div>
+  <div class="stmt-row" style="opacity:.4">
+    <span class="stmt-label" style="font-style:italic;font-size:11px">
+      … purchases inside the period (skip unless payment/credit related) …
+    </span>
+    <span></span>
+  </div>
+  ${row('Closing Balance','$1,200.00','total',{n:'1',color:'#1a7a41'})}
+  ${row('Minimum Payment Due','$25.00','highlight-blue',{n:'1b',color:'#92600a'})}
+  ${row('Payment received - 12 Mar','−$10.00','highlight-red',{n:'2',color:'#4A4AF9'})}
+  ${row('Due date','15 Mar','')}
+</div>
+
+<div class="box red" style="margin-bottom:14px">
+  <div class="box-lbl">✗ Minimum payment not met</div>
+  The payment made was less than the minimum payment due. As a result, the account is considered overdue.  
+  A <strong>missed payment fee</strong> may be charged, and interest will continue to accrue on the outstanding balance.
+</div>
+
+  <!-- SCENARIO E: MONTHLY PAYMENT BALANCE (SmartPlan/BT/PartPay) -->
+  <div class="section-lbl">Scenario D - account has SmartPlan / Balance Transfer / PartPay</div>
+  <div class="stmt" style="margin-bottom:5px">
+    <div class="stmt-head"><span class="stmt-head-title">February Statement - SmartPlan active</span><span class="stmt-head-sub">Period: 1 Feb – 28 Feb · Due: 15 Mar</span></div>
+    <div class="stmt-row" style="opacity:.4"><span class="stmt-label" style="font-style:italic;font-size:11px">… transactions inside the period (skip unless payment/credit related) …</span><span></span></div>
+    ${row('SmartPlan Balance','$2,000.00','highlight-blue')}
+    ${row('Closing Balance (total)','$3,200.00','total',{n:'1',color:'#92600a'})}
+    ${row('Monthly Payment Balance','$1,200.00','highlight-blue',{n:'1b',color:'#1a7a41'})}
+    ${row('Payment received - 14 Mar','−$1,200.00','highlight-green',{n:'2',color:'#4A4AF9'})}
+    ${row('Due date','15 Mar','')}
+  </div>
+  <div class="box green" style="margin-bottom:6px"><div class="box-lbl">✓ Correct - they paid the Monthly Payment Balance, not the full closing balance</div>
+    When a SmartPlan, Balance Transfer, or PartPay Card is active, the customer only needs to pay the <strong>Monthly Payment Balance</strong> ($1,200) - not the full closing balance ($3,200) - to keep their interest-free period. The payment cleared inside the correct date window and before the due date.
+  </div>
+  <div class="box amber"><div class="box-lbl">Common agent mistake</div>
+    If an agent sees Closing Balance = $3,200 and payment = $1,200 and concludes "they underpaid" - that's wrong. Always check whether a Monthly Payment Balance figure exists before drawing that conclusion. 
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- QUICK CHECK FLOWCHART -->
+  <div class="section-lbl">Quick check - flowchart</div>
+  <div style="background:var(--surface);border-radius:var(--rl);padding:1rem;margin-bottom:12px;font-size:12px;line-height:1.75">
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div><strong>1. Find the date window first</strong><br><span style="color:var(--t2)">Statement start date → payment due date.</span></div>
+      <div><strong>2. Search that window for payments/credits</strong><br><span style="color:var(--t2)">Use posted or cleared dates, not initiated dates.</span></div>
+      <div><strong>3. Does the statement show a Monthly Payment Balance?</strong><br><span style="color:var(--t2)">YES: use Monthly Payment Balance. NO: use Closing Balance.</span></div>
+      <div><strong>4. Did total payments ≥ required amount?</strong><br><span style="color:var(--t2)">NO: not paid in full. YES: continue.</span></div>
+      <div><strong>5. Did the payments clear on or before the due date?</strong><br><span style="color:var(--t2)">NO: paid late. YES: paid in full and on time.</span></div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+  <div class="section-lbl">Agent tips</div>
+  <div class="agent-tip"><div class="at-lbl">Common question</div>
+    <div class="at-q">"There are too many transactions - where do I even start?"</div>
+    <div class="at-a">Start with the statement start date and the payment due date. Search only inside that window first. Then scan for payments and credits, not purchases. Once the window is narrowed, you only need to compare the total paid against the Closing Balance or Monthly Payment Balance.</div>
+  </div>
+  <div class="agent-tip"><div class="at-lbl">Common question</div>
+    <div class="at-q">"I paid my card - why do I have interest on my statement?"</div>
+    <div class="at-a">Pull up last month's statement. First check the statement start date and due date so you are looking at the right period. Then find the Closing Balance (or Monthly Payment Balance if SmartPlan/BT/PartPay is active). Add payments that cleared within that period and by the due date. If the total paid was less than the required amount, or cleared after the due date, say: "Last month your required payment was $X and we received $Y on [date], which was [short / after the due date]. That's why interest appeared."</div>
+  </div>
+  <div class="agent-tip"><div class="at-lbl">Common question</div>
+    <div class="at-q">"I paid every month - how do I make sure this doesn't happen again?"</div>
+    <div class="at-a">Recommend Autopay set to "Monthly Payment Balance" (if they have a SmartPlan or Balance Transfer) or "Closing Balance" (if standard). This ensures the exact required amount is always paid on time regardless of what that figure is. Direct them to westpac.com.au/autopay or Online Banking to set it up.</div>
+  </div>
+  <div class="agent-tip"><div class="at-lbl">Common question</div>
+    <div class="at-q">"I paid more than the minimum - does that count as paying in full?"</div>
+    <div class="at-a">Only if they paid at least the full Closing Balance (or Monthly Payment Balance). Paying more than the minimum payment is good, but it doesn't maintain the interest-free period unless the full required amount was covered. The minimum payment just avoids the missed payment fee - it is not the threshold for interest-free.</div>
+  </div>`;
+}
+
+
 function renderTopic(t){
   const contentMap = {
     interest:    renderInterest,
     statement:   renderStatement,
+    paid_check:  renderPaidCheck,
+    fees:        renderFees,
     balance_xfr: renderBalanceXfr,
     smartplan:   renderSmartplan,
     partpay:     renderPartpay,

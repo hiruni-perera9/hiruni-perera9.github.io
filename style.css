@@ -10,6 +10,7 @@
   --warning-bg:#fffbf0;--warning-text:#92600a;--warning-bdr:#ffd980;
   --success-bg:#f0faf4;--success-text:#1a7a41;--success-bdr:#a4ddb9;
   --info-bg:#ededff;--info-text:#4A4AF9;--info-bdr:#9898fb;
+  --trans-bg:#e6f5f4;--trans-text:#0d7377;--trans-bdr:#6cc4c1;
   --r:8px;--rl:14px;--rxl:20px;
 }
 html,body{min-height:100%;font-family:'DM Sans',-apple-system,sans-serif;font-size:15px;background:var(--brand);color:var(--text-primary);-webkit-font-smoothing:antialiased}
