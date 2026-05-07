@@ -93,6 +93,12 @@ button:focus-visible{outline:none;box-shadow:0 0 0 3px var(--brand-light)}
   gap:10px;
 }
 
+.brand-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
 .logo-mark{
   width:36px;
   height:36px;
@@ -162,7 +168,6 @@ button:focus-visible{outline:none;box-shadow:0 0 0 3px var(--brand-light)}
     padding:14px 14px;
     gap:0;
   }
-
 
   .header-brand{
     display:flex;

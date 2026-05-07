@@ -14,7 +14,6 @@
 }
 html,body{min-height:100%;font-family:'DM Sans',-apple-system,sans-serif;font-size:15px;background:var(--brand);color:var(--t1);-webkit-font-smoothing:antialiased}
 body{display:flex;flex-direction:column;align-items:center;padding:1.5rem 1rem 5rem}
-
 .brand{display:flex;align-items:center;gap:10px}
 .logomark{width:32px;height:32px;background:var(--coral);border-radius:9px;display:grid;place-items:center;font-size:15px;font-weight:700;color:#fff;flex-shrink:0}
 .brand-name{font-size:13px;font-weight:600;color:rgba(255,255,255,.88)}
@@ -133,6 +132,12 @@ button:focus-visible{outline:none;box-shadow:0 0 0 3px var(--brand-lt)}
 .sidebar-top{display:block}
 
 .header-brand{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.brand-row{
   display:flex;
   align-items:center;
   gap:10px;
