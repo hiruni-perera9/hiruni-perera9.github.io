@@ -15,16 +15,83 @@
 html,body{min-height:100%;font-family:'DM Sans',-apple-system,sans-serif;font-size:15px;background:var(--brand);color:var(--t1);-webkit-font-smoothing:antialiased}
 body{display:flex;flex-direction:column;align-items:center;padding:1.5rem 1rem 5rem}
 
-@media (max-width: 600px) {
-
-    body{
-       display:block
-    }
+.sidebar{
+  width:240px;
+  height:100vh;
+  position:fixed;
+  left:0;
+  top:0;
+  background: #1A1B4B;
+  color:#fff;
+  display:flex;
+  flex-direction:column;
+  padding:20px 16px;
+  gap:20px;
 }
-  
+
+.sidebar-top{display:block}
+
+.header-brand{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.logo-mark{
+  width:36px;
+  height:36px;
+  border-radius:10px;
+  background:#F05A37;
+  display:grid;
+  place-items:center;
+  font-weight:800;
+}
+
+.page-org{
+  font-weight:700;
+  font-size:14px;
+}
+
+.page-sub{
+  font-size:11px;
+  color:rgba(255,255,255,.6);
+}
+
+.mobile-menu-btn{
+  display:none;
+}
+
+.sidebar-links{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.hub-link{
+  padding:10px 12px;
+  border-radius:10px;
+  font-size:13px;
+  text-decoration:none;
+  color:rgba(255,255,255,.8);
+  transition:.2s;
+}
+
+.hub-link:hover{
+  background:rgba(255,255,255,.1);
+  color:#fff;
+}
+
+/* Main content offset */
+.page{
+  width:100%;
+  max-width:980px;
+  margin:0 auto;
+  margin-left:240px;
+  padding:24px 16px 60px;
+}
+
 
 /* Page header */
-.phdr{width:100%;max-width:700px;display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem}
 .brand-row{display:flex;align-items:center;gap:10px}
 .logomark{width:32px;height:32px;background:var(--coral);border-radius:9px;display:grid;place-items:center;font-size:15px;font-weight:700;color:#fff}
 .brand-name{font-size:13px;font-weight:600;color:rgba(255,255,255,.9)}
@@ -33,7 +100,7 @@ body{display:flex;flex-direction:column;align-items:center;padding:1.5rem 1rem 5
 .back-link:hover{background:rgba(255,255,255,.22);color:#fff}
 
 /* Shell */
-.shell{width:100%;max-width:700px;background:var(--white);border-radius:var(--rxl);border:1px solid rgba(255,255,255,.15);overflow:hidden}
+.shell{width:600px;max-width:700px;background:var(--white);border-radius:var(--rxl);border:1px solid rgba(255,255,255,.15);overflow:hidden}
 
 /* Buttons */
 button{font-family:'DM Sans',sans-serif;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:background .12s,transform .1s}
@@ -154,4 +221,129 @@ button:active{transform:scale(.98)}
 
 .tc-icon {
   display: none;
+}
+
+
+/* Mobile dropdown nav */
+@media(max-width:760px){
+  body{
+    display:block;
+  }
+  .shell{
+    width:100%;
+    max-width:none;
+  }
+
+  .sidebar{
+    position:relative;
+    top:auto;
+    background: none;
+    width:100%;
+    height:auto;
+    z-index:1;
+    padding:14px 14px;
+    gap:0;
+  }
+
+
+  .header-brand{
+    display:flex;
+    flex-direction: row;
+    justify-content: space-between;
+    gap:10px;
+  }
+  .brand-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+
+  .sidebar-top{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+  }
+
+  .logo-mark{
+    width:32px;
+    height:32px;
+    border-radius:9px;
+    font-size:13px;
+  }
+
+  .page-org{
+    font-size:13px;
+  }
+
+  .page-sub{
+    font-size:10px;
+  }
+
+  .mobile-menu-btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    border:1px solid rgba(255,255,255,.18);
+    background:rgba(255,255,255,.1);
+    color:#fff;
+    border-radius:10px;
+    padding:8px 11px;
+    font-family:inherit;
+    font-size:12px;
+    font-weight:800;
+    cursor:pointer;
+    flex-shrink:0;
+  }
+
+  .menu-chevron{
+    font-size:13px;
+    line-height:1;
+    transition:transform .18s ease;
+  }
+
+  .sidebar.menu-open .menu-chevron{
+    transform:rotate(180deg);
+  }
+
+  .sidebar-links{
+    display:none;
+    flex-direction:column;
+    gap:8px;
+    margin-top:12px;
+    padding:10px;
+    background:rgba(255,255,255,.08);
+    border:1px solid rgba(255,255,255,.12);
+    border-radius:14px;
+  }
+
+  .sidebar.menu-open .sidebar-links{
+    display:flex;
+  }
+
+  .hub-link{
+    width:100%;
+    padding:10px 11px;
+    font-size:12px;
+    background:rgba(255,255,255,.08);
+    border:1px solid rgba(255,255,255,.1);
+    white-space:normal;
+  }
+
+  .hub-link:hover{
+    background:rgba(255,255,255,.16);
+  }
+
+  .page{
+    max-width:none;
+    margin-left:0;
+    padding:16px 12px 44px;
+  }
+
+  button:hover{
+    background:rgba(255,255,255,.08);
+    border-color:rgba(255,255,255,.12);
+    color:#fff;
+  }
 }

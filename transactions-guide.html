@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Transaction Lookup — Foundever</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style-trans.css">
+</head>
+<body>
+<div class="sidebar">
+  <!-- Sidebar Header -->
+  <div class="header-brand">
+    <!-- Brand Logo -->
+     <div class="brand-row">
+      <div class="logo-mark"><span>F</span></div>
+      <div>
+        <div class="page-org">Foundever</div>
+        <div class="page-sub">Call Centre Agent Guide</div>
+      </div>
+     </div>
+    <!-- Mobile Menu Button -->
+    <button class="mobile-menu-btn" onclick="toggleMobileMenu()" aria-expanded="false" aria-controls="sidebarLinks">
+      Menu <span class="menu-chevron">⌄</span>
+    </button>
+  </div>
+  <!-- Sidebar Links -->
+  <nav class="sidebar-links">
+    <a class="hub-link" href="index.html">
+      ID Guide
+    </a>
+    <a class="hub-link" href="training-hub.html">
+      Training Hub
+    </a>
+
+    <a class="hub-link" href="creditcard-guide.html">
+      Credit Card Guide
+    </a>
+
+    <a class="hub-link" href="terms-conditions.html">
+      CC Terms & Conditions
+    </a>
+
+    <a class="hub-link" href="transactions-guide.html">
+      Transactions Guide
+    </a>
+  </nav>
+</div>
+<div id="app"></div>
+<script>
+
+// ── TRANSACTION DATA ──────────────────────────────────────────────────────────
+// Each entry:
+//   descs  — array of realistic statement descriptions (first = primary, rest = variants)
+//   brief  — one-liner shown on the row (what it is at a glance)
+//   color  — category dot colour
+//   timing — 'instant' | 'same' | 'next' | 'days'
+//   what   — plain English explanation (1–2 sentences)
+//   when   — array of scenario bullet points
+//   tnote  — detailed timing note
+//   fraud  — fraud/dispute flag (null if low risk)
+//   agentQ — common customer question
+//   agentA — agent answer
+//   tags   — extra search keywords not in the above fields
+
+const TX = [
+
+  // ─── CARD PURCHASES ────────────────────────────────────────────────────────
+  {id:'eftpos',
+   cat:'card',   descs:['EFTPOS DEBIT  WOOLWORTHS 1234  SYDNEY NSW','EFTPOS  COLES EXPRESS  PARRAMATTA NSW'],
+   brief:'Debit card used at a physical merchant terminal',
+   color:'#4A4AF9', timing:'instant',
+   what:'The customer tapped, inserted (chip + PIN), or swiped their debit card at a physical EFTPOS terminal in a shop, restaurant, petrol station, or any other merchant.',
+   when:['Tap & pay (NFC/contactless) at checkout','Insert card and enter PIN','Swipe card on older terminals','Any face-to-face card payment at a merchant'],
+   tnote:'Debited immediately. Appears on the account in real time.',
+   fraud:'Small test charges ($1–$5) followed by larger ones may indicate card skimming. Purchases in unexpected locations warrant verification.',
+   agentQ:'What is "EFTPOS DEBIT [merchant name]" on my statement?',
+   agentA:'The customer\'s debit card was physically used at that merchant\'s terminal on that date — by tapping or inserting and entering a PIN. If unrecognised, check the exact date, amount, and merchant location before raising a dispute.',
+   tags:['tap','physical','terminal','swipe','insert','pin','shop','store','supermarket','restaurant']},
+
+  {id:'visa_debit',
+   cat:'card',   descs:['VISA DEBIT  NETFLIX.COM  LOS ANGELES CA','VISA DEBIT  AMAZON AU PTY LTD'],
+   brief:'Debit card details entered online or over the phone',
+   color:'#4A4AF9', timing:'instant',
+   what:'The customer entered their debit card number, expiry, and CVV for an online or phone purchase. No physical card or tap was involved — only the card details.',
+   when:['Online shopping (entering card number on a website)','Telephone order (reading card details to a merchant)','Mail order purchase','Subscription service billed via stored card details'],
+   tnote:'Debited immediately. Shows the Visa or Mastercard label rather than "EFTPOS" because no physical terminal was involved.',
+   fraud:'High-risk category — only card details are needed, not the physical card. If the customer still has their card, this may mean their card details were stolen via data breach, phishing, or skimming.',
+   agentQ:'I see "VISA DEBIT [merchant]" but I didn\'t use my card in a shop.',
+   agentA:'This is an online or phone purchase using card details only — no physical tap or insert. If they don\'t recognise it, their card number may be compromised. Block the card and raise a dispute.',
+   tags:['online','internet','phone','card details','cvv','card not present','e-commerce']},
+
+  {id:'cashout',
+   cat:'card',   descs:['EFTPOS DEBIT  CASH OUT  IGA BALMAIN NSW','EFTPOS  CASH OUT $100  COLES NSW'],
+   brief:'Cash received at an EFTPOS terminal alongside a purchase',
+   color:'#4A4AF9', timing:'instant',
+   what:'The customer selected "Cash Out" at a merchant\'s EFTPOS terminal and received physical cash as part of their purchase. The cash amount is debited on top of any purchase amount.',
+   when:['Selecting "Cash Out" at supermarket, petrol station, or independent retailer','Not all merchants offer cash out — typically available at IGA, Coles, 7-Eleven etc.','Usually limited to $200 per transaction by the merchant'],
+   tnote:'Immediate. The purchase amount and cash-out amount often appear as one combined debit.',
+   fraud:'Low risk — requires physical card and PIN. If disputed, PIN entry is typically confirmed.',
+   agentQ:'The amount on my EFTPOS transaction is higher than what I spent.',
+   agentA:'The total likely includes a cash-out amount. For example, $25 groceries + $100 cash out = one $125 EFTPOS Debit. Check whether the customer chose cash out at the terminal.',
+   tags:['cash back','cash out','withdrawal','cash at shop','eftpos cash']},
+
+  {id:'digital_wallet',
+   cat:'card',   descs:['EFTPOS DEBIT  TAP&PAY  MYER MELBOURNE VIC','EFTPOS DEBIT  APPLE PAY  CITY CAFE SYDNEY NSW'],
+   brief:'Payment via Apple Pay, Google Pay, or digital wallet',
+   color:'#4A4AF9', timing:'instant',
+   what:'The customer tapped their phone, watch, or other device at a contactless terminal using a digital wallet (Apple Pay, Google Pay, Samsung Pay, or the Westpac App). Processed identically to a physical card tap.',
+   when:['Tap phone/watch using Apple Pay at any contactless terminal','Tap phone using Google Pay or Samsung Pay','Payments under $100 do not require a PIN or biometric in most cases'],
+   tnote:'Immediate. Statement shows "EFTPOS DEBIT" — not "Apple Pay" or "Google Pay". The underlying card type is what\'s recorded.',
+   fraud:'Lost phone with a digital wallet can allow contactless payments without knowing the PIN. Under $100 per tap = no authentication required for some transactions.',
+   agentQ:'I used Apple Pay — why doesn\'t it say Apple Pay on my statement?',
+   agentA:'Digital wallets process as a standard EFTPOS transaction. The statement records the underlying card and EFTPOS terminal, not the wallet app used. "EFTPOS DEBIT" is correct for an Apple Pay or Google Pay tap.',
+   tags:['apple pay','google pay','samsung pay','tap phone','digital wallet','nfc','contactless','watch']},
+
+  // ─── FAST PAYMENTS (OSKO / NPP) ────────────────────────────────────────────
+  {id:'osko_out',
+   cat:'osko',   descs:['OSKO PAYMENT  Jane Smith  Mobile +61401234567','OSKO PAYMENT  AGL ENERGY  ABN 74115061375'],
+   brief:'Instant outgoing payment via Osko/NPP',
+   color:'#0d7377', timing:'instant',
+   what:'A near-real-time payment sent via the New Payments Platform (NPP) using Osko® by BPAY®. Can be sent to a BSB/account number or a PayID (mobile, email, or ABN). Available 24 hours a day, 7 days a week.',
+   when:['Sending money to a person or business in Online Banking or the app','Any Pay Anyone payment where the receiving account is Osko-enabled','Paying via a PayID (mobile/email/ABN)'],
+   tnote:'Received by the other party within seconds, any time of day or night, including weekends and public holidays. May take slightly longer for first-time payees or if flagged for security screening.',
+   fraud:'Major scam vector. Once sent, Osko payments are extremely difficult to recover. Customers should verify the payee name before confirming. "Osko Me" scams ask for urgent instant transfers.',
+   agentQ:'I sent an Osko payment to the wrong person — can I get it back?',
+   agentA:'Request a payment recall through Online Banking or by calling us immediately. Contact the receiving bank. Recovery is not guaranteed — if the recipient agrees to return funds it can be reversed, but if they refuse, AFCA may need to be involved. Act fast.',
+   tags:['osko','npp','fast payment','instant transfer','new payments platform','pay anyone','send money']},
+
+  {id:'osko_in',
+   cat:'osko',   descs:['OSKO CREDIT  John Smith  Mobile','OSKO CREDIT  COMPANY PTY LTD  REF INV-0042'],
+   brief:'Instant incoming payment received via Osko/NPP',
+   color:'#0d7377', timing:'instant',
+   what:'A real-time payment received from another person or business via the New Payments Platform. Can carry up to 280 characters of payment description. Funds are available immediately.',
+   when:['Someone sent money using Online Banking or their app','Business received a customer payment to their PayID','Reimbursement or refund sent via Osko'],
+   tnote:'Immediately available in the account balance 24/7. Balance updates for interest calculations on the next banking day if received outside banking hours.',
+   fraud:'Unexpected Osko credits followed by requests to "forward" the money are a money mule scam indicator. Customers should not spend unrecognised incoming payments.',
+   agentQ:'I received an Osko credit I don\'t recognise.',
+   agentA:'The description shows the sender\'s name. It may be a mistaken payment from someone who entered the wrong PayID or account details. Advise the customer not to spend it — the sender can request a recall, and if the customer spends mistaken funds they may have to repay them.',
+   tags:['osko credit','received','incoming','payment received','fast credit','npp']},
+
+  {id:'payid',
+   cat:'osko',   descs:['OSKO PAYMENT  0412 345 678  Mobile PayID','OSKO PAYMENT  someone@email.com  Email PayID'],
+   brief:'Payment sent to a mobile number or email address',
+   color:'#0d7377', timing:'instant',
+   what:'A payment addressed to a PayID — a unique identifier (mobile number, email, or ABN) linked to a bank account. Processed via Osko/NPP. The payee\'s name is shown to the sender before they confirm, reducing mistakes.',
+   when:['Recipient shared their mobile number as a PayID instead of BSB/account','Paying a business using their ABN as PayID','Recipient shared an email address as PayID'],
+   tnote:'Near-instant, 24/7. The payee name is displayed before confirmation — the customer should always verify this matches the intended recipient.',
+   fraud:'Customers should verify the name shown before sending. If the displayed name doesn\'t match who they intended to pay, they must not proceed.',
+   agentQ:'What is a PayID? Is it safe?',
+   agentA:'A PayID is a simpler alternative to BSB and account number. The customer links their mobile, email, or ABN to their account and others can pay them using that identifier. When making a PayID payment, the account name is shown before confirming — this is the main safety check.',
+   tags:['payid','mobile number','email','abn','identifier','pay anyone']},
+
+  {id:'payto',
+   cat:'osko',   descs:['PAYTO DEBIT  Spotify Pty Ltd  RECURRING','PAYTO DEBIT  Origin Energy  VARIABLE'],
+   brief:'New-style direct debit via NPP (replaces DDR)',
+   color:'#0d7377', timing:'instant',
+   what:'A payment initiated by a merchant using PayTo — the modern NPP-based replacement for traditional Direct Debit Requests (DDR). The customer approved a PayTo agreement, and the merchant can then pull single or recurring payments in real time.',
+   when:['Subscription services that have migrated from Direct Debit to PayTo','Utility companies or insurers using PayTo for billing','Any merchant that the customer approved a PayTo agreement for'],
+   tnote:'Near-instant. The customer can view, pause, or cancel PayTo agreements in Online Banking or the Westpac App at any time.',
+   fraud:'Customers should review active PayTo agreements in the app regularly. Unexpected PayTo debits from unknown merchants should be investigated.',
+   agentQ:'What is "PAYTO DEBIT"? I thought this was a direct debit.',
+   agentA:'PayTo is the modern replacement for direct debit — it runs via the NPP so it\'s real-time. The customer authorised this business to take money. Unlike old direct debits, they can manage, pause, or cancel PayTo agreements directly in the Westpac App.',
+   tags:['payto','pay to','npp direct debit','merchant initiated','recurring payment','mandate']},
+
+  // ─── BPAY & DIRECT DEBITS ────────────────────────────────────────────────────
+  {id:'bpay',
+   cat:'bpay',   descs:['BPAY  AGL ENERGY  REF 1234567890','BPAY PAYMENT  COUNCIL RATES  987654321'],
+   brief:'Bill payment using a biller code and reference number',
+   color:'#c07a10', timing:'same',
+   what:'A payment made to a biller via the BPAY system using a Biller Code and Customer Reference Number (CRN). The customer initiates this in Online Banking. BPAY® is a registered trademark of BPAY Pty Ltd.',
+   when:['Paying electricity, gas, water, or internet bills','Paying council rates, insurance, or phone bills','Paying government charges, fines, or fees','Paying another bank\'s credit card using BPAY'],
+   tnote:'Before 6pm on a banking day → received same day. After 6pm or on a weekend/public holiday → received next banking day.',
+   fraud:'Low risk — customer initiates the payment. Scammers may send fake BPAY details in phishing messages. Always verify biller codes on the official bill, not via an unsolicited email.',
+   agentQ:'I paid a bill via BPAY but the biller says they haven\'t received it.',
+   agentA:'Payments before 6pm on a banking day are received same day. After 6pm or weekends it\'s the next banking day. Billers may have their own internal processing time on top. If it\'s been more than 2 business days from a banking-day payment, we can trace it using the BPAY receipt number.',
+   tags:['bpay','bill payment','biller code','reference number','utilities','rates','council']},
+
+  {id:'direct_debit',
+   cat:'bpay',   descs:['DIRECT DEBIT  SPOTIFY P/L','DIRECT DEBIT  INSURANCE CO  REF 00123'],
+   brief:'Merchant automatically pulled money from the account',
+   color:'#c07a10', timing:'next',
+   what:'A payment initiated by a merchant, not the customer, using a Direct Debit Request (DDR) authority that the customer previously signed or agreed to. The merchant sets the date and amount and pulls funds from the account.',
+   when:['Subscription services (streaming, gym memberships, software)','Insurance premiums','Utility or phone plan on direct debit','Loan or mortgage repayments via DDR'],
+   tnote:'Typically processed overnight. Usually debited 1–2 business days after the merchant initiates it.',
+   fraud:'If the customer doesn\'t recognise the merchant or didn\'t sign a DDR, we can block and dispute. Cancelling with Westpac alone doesn\'t cancel the agreement with the merchant — they should also contact the merchant.',
+   agentQ:'There\'s a "DIRECT DEBIT" from a company I don\'t recognise — how do I stop it?',
+   agentA:'Check whether the customer signed a Direct Debit Request — often in small print when signing up for a service. To stop it: they should contact the merchant to cancel, AND contact us to block the specific direct debit. If it was genuinely unauthorised, we can reverse it and block future debits.',
+   tags:['direct debit','ddr','merchant debit','subscription','automatic payment','pulled from account','recurring']},
+
+  {id:'recurring_card',
+   cat:'bpay',   descs:['VISA DEBIT  AMAZON WEB SERVICES  RECURRING','EFTPOS DEBIT  ADOBE SYSTEMS INC  AUTO'],
+   brief:'Subscription charge using stored card details',
+   color:'#c07a10', timing:'instant',
+   what:'A merchant charged the customer\'s card on file on a recurring basis using tokenised credentials. The customer originally saved their card details when signing up for a subscription or service.',
+   when:['Streaming and software subscriptions (Netflix, Spotify, Adobe, Microsoft 365)','Cloud storage (iCloud, Google One, Dropbox)','Any service where card details were saved by the merchant'],
+   tnote:'Immediate — debited when the merchant initiates the charge, usually on the subscription anniversary or renewal date.',
+   fraud:'Reissuing a card may NOT stop these charges — merchants using tokenised credentials automatically receive updated card details. Customer must cancel the subscription directly with the merchant.',
+   agentQ:'I cancelled my card but I\'m still being charged for a subscription.',
+   agentA:'Some merchants use tokenised credentials — when a card is replaced, the card scheme automatically updates their token with new card details. The charge continues. The customer must cancel the subscription with the merchant directly, not just replace the card.',
+   tags:['subscription','recurring','tokenised','card on file','auto renew','auto charge','netflix','spotify','adobe']},
+
+  // ─── BANK TRANSFERS ─────────────────────────────────────────────────────────
+  {id:'internet_transfer',
+   cat:'xfer',   descs:['INTERNET TRANSFER  TO SAVINGS ACCOUNT','TRANSFER OUT  JOHN DOE  032-001 ACC 12345'],
+   brief:'Customer-initiated online banking transfer',
+   color:'#1a7a41', timing:'instant',
+   what:'A transfer made by the customer in Online Banking or the Westpac App — either between their own accounts or to another person. Transfers between Westpac accounts are immediate.',
+   when:['Moving money between own savings and everyday accounts','Transferring to a linked account','Setting aside funds for savings goals'],
+   tnote:'Between own Westpac accounts: immediate, even on weekends. To other banks (non-Osko): next banking day if before 6pm, second banking day if after 6pm.',
+   fraud:'If the customer didn\'t initiate this, their Online Banking credentials may be compromised. Block access immediately and escalate to fraud.',
+   agentQ:'I see "INTERNET TRANSFER" to an account I don\'t recognise.',
+   agentA:'A transfer was made from Online Banking. If the customer didn\'t do this, their credentials may be compromised — block the account, reset access, and escalate to fraud. If they did it, this is simply a transfer they made in the app.',
+   tags:['internet transfer','online transfer','funds transfer','move money','savings','transfer out']},
+
+  {id:'scheduled',
+   cat:'xfer',   descs:['SCHEDULED TRANSFER  TO SAVINGS  $500.00','RECURRING TRANSFER  RENT ACCOUNT  MONTHLY'],
+   brief:'Automatic transfer set up in Online Banking',
+   color:'#1a7a41', timing:'instant',
+   what:'A future-dated or recurring transfer the customer set up to run automatically on a set date. Can be weekly, fortnightly, monthly, or a one-off future date.',
+   when:['Automatic savings contributions','Regular rent or household payment to a family member\'s account','Sinking fund or bill account top-up'],
+   tnote:'Processes on the scheduled date. If the date falls on a weekend or public holiday, it typically processes on the next business day.',
+   fraud:'If a scheduled transfer appears that the customer didn\'t set up, this may indicate unauthorised Online Banking access.',
+   agentQ:'A "Scheduled Transfer" went out that I didn\'t make.',
+   agentA:'This means a recurring or future-dated transfer was previously configured in Online Banking and has now processed. If the customer didn\'t set it up, escalate to fraud, check for other unauthorised scheduled payments, and reset Online Banking access.',
+   tags:['scheduled','recurring transfer','automatic transfer','future dated','auto payment','standing order']},
+
+  // ─── ATM & CASH ─────────────────────────────────────────────────────────────
+  {id:'atm_withdrawal',
+   cat:'atm',    descs:['ATM WITHDRAWAL  WESTPAC ATM  GEORGE ST SYDNEY','CASH WITHDRAWAL  062-000  ATM 12345'],
+   brief:'Cash withdrawn from an ATM with debit card and PIN',
+   color:'#374151', timing:'instant',
+   what:'The customer withdrew cash from an ATM using their debit card and PIN. At Westpac-branded ATMs there is no fee for Westpac customers. Other bank or third-party ATMs may charge operator fees.',
+   when:['Cash withdrawal at any ATM in Australia or overseas','Westpac ATMs: no fee for Westpac customers','Non-Westpac ATMs: operator fee may apply','Overseas ATMs: foreign transaction fee also applies'],
+   tnote:'Debited immediately from the account balance.',
+   fraud:'ATM skimming can copy card details and capture PIN via camera. Withdrawals at unknown locations or at unusual hours are a fraud indicator. Check whether the customer was actually in that location.',
+   agentQ:'There\'s an ATM withdrawal at a location I\'ve never been to.',
+   agentA:'This warrants immediate investigation. Ask whether anyone else has access to the card or PIN. If unauthorised, block the card now and raise a dispute. Under the ePayments Code, the customer may not be liable if they protected their PIN properly.',
+   tags:['atm','cash','withdrawal','cash out','machine','teller machine']},
+
+  {id:'atm_deposit',
+   cat:'atm',    descs:['SMART ATM DEPOSIT  WESTPAC PITT ST SYDNEY','ATM DEPOSIT  CASH  $200.00  073-001'],
+   brief:'Cash deposited at a Westpac Smart ATM',
+   color:'#374151', timing:'same',
+   what:'Cash deposited into the account using a Westpac Smart ATM. Smart ATMs accept notes directly without needing an envelope.',
+   when:['Depositing cash outside branch hours','Depositing business takings after close of business','Depositing cash when no teller is available'],
+   tnote:'Deposits before the Smart ATM cut-off time are credited same business day. After the cut-off, next business day. Funds may not be immediately available to spend.',
+   fraud:'Very low risk. If a deposit doesn\'t appear after 2 business days, the ATM can be reconciled using the deposit time and ATM ID.',
+   agentQ:'I deposited cash at a Westpac ATM and it\'s not showing.',
+   agentA:'There is a cut-off time for Smart ATM deposits. Before the cut-off on a business day: same day. After the cut-off or on weekends: next business day. If it\'s been more than 2 business days, the ATM needs a reconciliation investigation — note the deposit time and ATM location.',
+   tags:['atm deposit','smart atm','cash deposit','deposit machine','drop deposit']},
+
+  {id:'bankpost',
+   cat:'atm',    descs:['WESTPAC BANK@POST  AUSTRALIA POST DEPOSIT','BANK@POST WITHDRAWAL  AUS POST  NSW'],
+   brief:'Cash deposit or withdrawal at an Australia Post outlet',
+   color:'#374151', timing:'same',
+   what:'A cash transaction (deposit or withdrawal) made at an Australia Post outlet on behalf of Westpac. Used particularly in regional areas or where no Westpac branch is nearby.',
+   when:['Depositing or withdrawing cash at a local post office','Banking in rural or remote areas without a nearby Westpac branch','Customers who prefer face-to-face banking'],
+   tnote:'Generally processed same business day. May vary by Australia Post outlet.',
+   fraud:'Low risk — requires in-person identification.',
+   agentQ:'What is "BANK@POST" or "AUSTRALIA POST DEPOSIT" on my statement?',
+   agentA:'Bank@Post allows Westpac customers to deposit or withdraw cash at Australia Post stores. If this transaction appears, a cash transaction was made at a post office using the customer\'s Westpac account.',
+   tags:['bank at post','australia post','post office','bankpost','regional','cash deposit post']},
+
+  // ─── INCOMING CREDITS ────────────────────────────────────────────────────────
+  {id:'salary',
+   cat:'credit', descs:['DIRECT CREDIT  COMPANY PTY LTD  PAYROLL','SALARY CREDIT  EMPLOYER NAME  FORTNIGHTLY'],
+   brief:'Incoming wage or salary payment',
+   color:'#166534', timing:'same',
+   what:'An incoming credit sent by an employer (or other business) via the Direct Entry payment system. Typically labelled with the employer\'s name and a payroll reference.',
+   when:['Weekly, fortnightly, or monthly wage payment','Payroll disbursement from an employer\'s payroll system','Freelance or contracting payment from a business client'],
+   tnote:'Received same business day if processed before 6pm. After 6pm, received next banking day. Most employers submit payroll the day before pay day.',
+   fraud:'Unexpected large direct credits may be part of a money mule scam. Advise customers not to forward unrecognised incoming funds.',
+   agentQ:'My pay hasn\'t come through — when will it arrive?',
+   agentA:'Salaries are received same day if the employer submitted before 6pm on a banking day. Most payroll systems process the night before. If it\'s past normal pay time, the customer should check with their payroll team first. If the employer confirms it was sent, we can trace the payment.',
+   tags:['salary','wages','pay','payroll','direct credit','employer','income','fortnightly','weekly']},
+
+  {id:'government',
+   cat:'credit', descs:['DIRECT CREDIT  CENTRELINK','DIRECT CREDIT  AUSTRALIAN TAX OFFICE  REFUND'],
+   brief:'Centrelink, ATO, or other government payment',
+   color:'#166534', timing:'same',
+   what:'An incoming credit from a government agency — Centrelink benefits, ATO tax refunds, Medicare rebates, NDIS payments, or other government disbursements.',
+   when:['Centrelink fortnightly payments (JobSeeker, Age Pension, Family Tax Benefit)','ATO tax refund','Medicare rebate','State or federal government grant'],
+   tnote:'Received same banking day. Government payment dates are scheduled in advance.',
+   fraud:'Scammers impersonate Centrelink and the ATO. Westpac, the ATO, and Centrelink will never ask for bank details via unsolicited call or message.',
+   agentQ:'My Centrelink payment hasn\'t arrived on the expected date.',
+   agentA:'Government payments may be delayed over public holidays. Centrelink pays every fortnight and the timing can shift slightly. Advise the customer to contact Centrelink directly (132 300) if not received by end of the expected banking day. We can also check whether a payment has been received.',
+   tags:['centrelink','ato','government','tax refund','welfare','pension','jobseeker','ndis','medicare']},
+
+  {id:'interest_credit',
+   cat:'credit', descs:['INTEREST CREDIT  SAVINGS ACCOUNT','INTEREST  TERM DEPOSIT  MATURITY'],
+   brief:'Interest earned on a savings account or term deposit',
+   color:'#166534', timing:'same',
+   what:'Interest earned on a savings account, term deposit, or other interest-bearing product. Credited on the anniversary date, end of term, or monthly as specified by the account.',
+   when:['Monthly savings account interest','Term deposit interest at maturity or annually','Offset account interest'],
+   tnote:'Applied on the designated interest date.',
+   fraud:'No fraud risk.',
+   agentQ:'My interest credit was less than I expected.',
+   agentA:'Interest is calculated daily on the account balance. If the balance changed during the period due to withdrawals or deposits, the interest reflects that. For a detailed breakdown, request an interest statement.',
+   tags:['interest','credit','earned','savings interest','term deposit','return']},
+
+  {id:'refund',
+   cat:'credit', descs:['VISA DEBIT REFUND  COLES SUPERMARKETS','EFTPOS CREDIT  JB HI-FI  REF TXN123456'],
+   brief:'Refund from a merchant for a return or cancellation',
+   color:'#166534', timing:'days',
+   what:'A credit from a merchant for a returned item, cancelled order, or billing correction. The refund is sent back to the account that was originally charged.',
+   when:['Returning a purchase in-store or online','Cancelled order or subscription refund','Merchant billing correction','Duplicate charge reversed by the merchant'],
+   tnote:'Typically 3–5 business days from when the merchant processes the refund. The merchant initiates the credit — Westpac simply receives and applies it.',
+   fraud:'No fraud risk. Unsolicited unexpected refunds can be an "overpayment scam" precursor — advise customer to query it before spending.',
+   agentQ:'I returned something 5 days ago — where is my refund?',
+   agentA:'Refunds take 3–5 business days from when the merchant processes them — not from when the customer returned the item. If the merchant confirms they\'ve processed it and it\'s been more than 5 business days, we can investigate. If the merchant hasn\'t processed it yet, the customer needs to follow up with them first.',
+   tags:['refund','credit','return','merchant refund','cancelled order','reversal','credit back']},
+
+  // ─── CHEQUES ─────────────────────────────────────────────────────────────────
+  {id:'cheque_drawn',
+   cat:'cheque', descs:['CHEQUE  000012345','CHQ  000067890  DRAWN'],
+   brief:'A cheque written by the customer has been cashed',
+   color:'#92400e', timing:'days',
+   what:'A cheque that the customer wrote and gave to a payee has been deposited and cleared through the banking system. The funds are debited when the cheque is presented.',
+   when:['Customer paid rent or a private person by cheque','Cheque payment to a business or tradespeople','Cheque presented to a bank by the recipient'],
+   tnote:'3–5 business days to clear once deposited by the recipient. The debit appears when the cheque is presented and cleared, which may be long after the cheque was written.',
+   fraud:'Lost or stolen cheques can be fraudulently presented. Contact us immediately to stop payment if a cheque is lost or stolen before it is banked.',
+   agentQ:'A cheque I wrote months ago has just appeared as a debit.',
+   agentA:'Cheques can be deposited at any time — there\'s no expiry for recently issued cheques. The debit only appears when the recipient deposits it and it clears. If the customer suspects fraud (e.g. cheque was lost or altered), we can investigate. To prevent this going forward, they can request a stop payment.',
+   tags:['cheque','chq','cheque drawn','written cheque','paid by cheque']},
+
+  {id:'cheque_deposit',
+   cat:'cheque', descs:['CHEQUE DEPOSIT  CHQ 000098765','EFT DEPOSIT  CHEQUE  $1,500.00'],
+   brief:'A cheque deposited by the customer — awaiting clearance',
+   color:'#92400e', timing:'days',
+   what:'A cheque received by the customer and deposited into their account. The funds are held for clearance before becoming fully available.',
+   when:['Depositing a cheque received from a person or business','Depositing a birthday or gift cheque','Depositing a customer payment'],
+   tnote:'3–5 business days to fully clear. Some funds may be provisionally available sooner but are not confirmed until full clearance. A cheque can be reversed even after appearing to clear if it bounces.',
+   fraud:'Fraudulent cheques can appear to clear initially and then bounce days later. Never spend against a cheque deposit — especially unsolicited overpayments from strangers — until it fully clears.',
+   agentQ:'I deposited a cheque 2 days ago and it\'s not cleared.',
+   agentA:'Cheques take 3–5 business days to fully clear. The amount may show as pending but is not available until cleared. This is standard while the cheque passes through the banking system. If it\'s been more than 5 business days, we can investigate.',
+   tags:['cheque deposit','deposited cheque','cheque received','bounced cheque','dishonoured cheque']},
+
+  // ─── INTERNATIONAL ───────────────────────────────────────────────────────────
+  {id:'intl_transfer',
+   cat:'intl',   descs:['INT WIRE PAYMENT  JANE SMITH  LONDON UK','INTERNATIONAL TRANSFER  EUR 500.00  SWIFT'],
+   brief:'Money sent overseas via international wire (SWIFT)',
+   color:'#e05533', timing:'days',
+   what:'An outgoing international money transfer to an overseas bank account via the SWIFT network. Initiated in Online Banking or at a branch.',
+   when:['Sending money to family or friends overseas','Paying an overseas supplier or contractor','Paying overseas university fees or rent','Transferring funds to an overseas account'],
+   tnote:'Typically 2–5 business days depending on the destination, intermediary banks, currency, and compliance screening.',
+   fraud:'Major scam vector — romance scams, investment scams, and business email compromise (BEC) all result in international wire transfers. Once sent, recovery is extremely difficult.',
+   agentQ:'I sent an international transfer 4 days ago and it hasn\'t arrived.',
+   agentA:'International transfers take 2–5 business days. Delays can occur due to intermediary banks, public holidays in the destination country, or compliance holds. We can raise a SWIFT trace to investigate. If it\'s stuck, we can attempt a recall, though success depends on the receiving bank.',
+   tags:['international','overseas','swift','wire transfer','foreign','international transfer','send abroad']},
+
+  {id:'overseas_card',
+   cat:'intl',   descs:['OVERSEAS TRANS  HARRODS  LONDON GBR','VISA DEBIT  FX AUD 134.56  GBP 70.00  UK'],
+   brief:'Debit card used overseas or with an overseas merchant',
+   color:'#e05533', timing:'instant',
+   what:'A debit card transaction in a foreign currency or with an overseas merchant. Converted to AUD by Visa or Mastercard at the current exchange rate. A 3% foreign transaction fee applies to most Westpac cards (not Westpac Lite).',
+   when:['Physically using the debit card while overseas','Online purchases from overseas merchants or websites','Subscriptions billed by an overseas entity (even if the customer is in Australia)','Using the debit card at a foreign ATM'],
+   tnote:'Immediate. The AUD amount shown includes the exchange rate at time of processing (which may differ slightly from the purchase date due to settlement timing).',
+   fraud:'Overseas transactions when the customer is in Australia are a high fraud signal. Multiple overseas charges in rapid succession may indicate card cloning. Verify the customer\'s location.',
+   agentQ:'Why does my overseas transaction show a different amount than what I paid?',
+   agentA:'The AUD amount includes the exchange rate applied by Visa/Mastercard at settlement, plus a 3% foreign transaction fee. The settlement rate may differ slightly from the rate at time of purchase. If they have a Westpac Lite card, the 3% FX fee doesn\'t apply.',
+   tags:['overseas','foreign transaction','international card','abroad','travel','foreign currency','fx fee','exchange rate']},
+
+  // ─── ACCOUNT FEES ────────────────────────────────────────────────────────────
+  {id:'account_fee',
+   cat:'fees',   descs:['ACCOUNT KEEPING FEE','MONTHLY FEE  WESTPAC EVERYDAY'],
+   brief:'Recurring account service fee',
+   color:'#6b7280', timing:'same',
+   what:'A monthly or annual fee charged for maintaining a bank account. Some accounts have fee waiver criteria based on deposit amounts, age, or account type.',
+   when:['Monthly fee on a transaction account that didn\'t meet the waiver criteria','Annual fee on accounts with fee structures','Fee on premium account types'],
+   tnote:'Debited on the same date each month.',
+   fraud:'No fraud risk.',
+   agentQ:'Why am I being charged an account fee?',
+   agentA:'Check whether the account has a fee waiver and whether the conditions were met (e.g. minimum monthly deposit). Student, senior, and some basic accounts may be fee-free. Verify the criteria for the specific account type.',
+   tags:['account fee','monthly fee','service fee','bank fee','maintenance fee']},
+
+  {id:'dishonour',
+   cat:'fees',   descs:['DIRECT DEBIT REJECTION FEE','DISHONOUR FEE  DIRECT DEBIT RETURNED'],
+   brief:'Fee charged because a payment was rejected (insufficient funds)',
+   color:'#6b7280', timing:'same',
+   what:'A fee charged when a direct debit, BPAY, or cheque was returned because there were insufficient funds in the account at the time it was attempted.',
+   when:['A direct debit was attempted but the account had insufficient funds','A BPAY payment couldn\'t be processed','A cheque was dishonoured','A recurring payment failed'],
+   tnote:'Charged on the date the payment was dishonoured.',
+   fraud:'No fraud risk. Repeated dishonour fees may indicate financial difficulty — consider referral to Westpac Assist.',
+   agentQ:'I was charged a dishonour fee — can this be reversed?',
+   agentA:'Dishonour fees can sometimes be reversed as a goodwill gesture, particularly for first-time occurrences. Check the account history. If the customer is in financial difficulty, refer to Westpac Assist on 1800 067 497.',
+   tags:['dishonour','rejection','returned payment','nsf','insufficient funds','bounced','failed direct debit']},
+
+  {id:'overdrawn',
+   cat:'fees',   descs:['OVERDRAWN FEE','ACCOUNT OVERDRAWN  FEE CHARGED'],
+   brief:'Fee charged because the account went below zero',
+   color:'#6b7280', timing:'same',
+   what:'A fee charged when the account balance went negative (overdrawn). Some transactions are approved even with insufficient funds — when the account then goes below zero, this fee applies.',
+   when:['A card transaction or direct debit processed when the account was already at or near zero','A bank fee pushed a very low balance into negative','EFTPOS transaction approved just over the available balance'],
+   tnote:'Charged on the date the account went overdrawn.',
+   fraud:'No fraud risk. If repeated, may indicate financial difficulty.',
+   agentQ:'Why wasn\'t the transaction just declined instead of making my account overdrawn?',
+   agentA:'Some transactions — particularly recurring payments and certain EFTPOS — are approved even when funds are insufficient. When the account goes negative as a result, the overdrawn fee applies. We can look at blocking specific direct debits going forward. If financial hardship is involved, refer to Westpac Assist on 1800 067 497.',
+   tags:['overdrawn','overdraft','negative balance','below zero','overdrawn fee']},
+];
+
+
+// ── CATEGORIES ─────────────────────────────────────────────────────────────────
+const CATS = {
+  card:   {label:'Card Purchases',           color:'#4A4AF9'},
+  osko:   {label:'Fast Payments — Osko & NPP',color:'#0d7377'},
+  bpay:   {label:'BPAY & Direct Debits',     color:'#c07a10'},
+  xfer:   {label:'Bank Transfers',           color:'#1a7a41'},
+  atm:    {label:'ATM & Cash',               color:'#374151'},
+  credit: {label:'Incoming Credits',         color:'#166534'},
+  cheque: {label:'Cheques',                  color:'#92400e'},
+  intl:   {label:'International',            color:'#e05533'},
+  fees:   {label:'Account Fees',             color:'#6b7280'},
+};
+const CAT_ORDER = ['card','osko','bpay','xfer','atm','credit','cheque','intl','fees'];
+
+// ── TIMING LABELS ─────────────────────────────────────────────────────────────
+const TIMING = {
+  instant: {cls:'t-instant', label:'Instant 24/7'},
+  same:    {cls:'t-same',    label:'Same day'},
+  next:    {cls:'t-next',    label:'Next business day'},
+  days:    {cls:'t-days',    label:'3–5 business days'},
+};
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let query = '', openId = null;
+
+// ── SEARCH ────────────────────────────────────────────────────────────────────
+function searchMatch(tx, q){
+  if(!q) return true;
+  const haystack = [
+    tx.descs.join(' '),
+    tx.brief,
+    tx.what,
+    tx.when.join(' '),
+    tx.tags.join(' '),
+  ].join(' ').toLowerCase();
+  return haystack.includes(q);
+}
+
+function highlight(text, q){
+  if(!q) return esc(text);
+  return esc(text).replace(new RegExp(esc(q).replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'), m=>`<mark>${m}</mark>`);
+}
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function render(){
+  const q = query.trim().toLowerCase();
+  const filtered = TX.filter(t => searchMatch(t, q));
+
+  // ── BUILD ROW HTML (shared for both views) ──────────────────────────────
+  function rowHtml(tx) {
+    const isOpen = openId === tx.id;
+    const tm = TIMING[tx.timing] || TIMING.same;
+
+    const panel = isOpen ? `
+      <div class="entry-panel">
+        <div class="ep-inner">
+          <div class="ep-descs">
+            <div class="ep-desc-row">
+              <span class="ep-label">Appears as</span>
+              <div style="display:flex;flex-direction:column;gap:3px;flex:1">
+                ${tx.descs.map((d,i)=>`<span class="ep-desc ${i>0?'alt':''}">${highlight(d,q)}</span>`).join('')}
+              </div>
+            </div>
+          </div>
+          <div class="ep-section">
+            <div class="ep-sec-label">What it is</div>
+            <div class="ep-text">${highlight(tx.what, q)}</div>
+          </div>
+          <div class="ep-section">
+            <div class="ep-sec-label">When it appears</div>
+            <div class="ep-items">
+              ${tx.when.map(w=>`<div class="ep-item"><div class="ep-item-dot" style="background:${tx.color}"></div><span>${highlight(w,q)}</span></div>`).join('')}
+            </div>
+          </div>
+          <div class="ep-section">
+            <div class="ep-sec-label">Timing</div>
+            <div class="ep-timing"><span class="timing-chip ${tm.cls}">${tm.label}</span><span>${esc(tx.tnote)}</span></div>
+          </div>
+          ${tx.fraud ? `<div class="ep-fraud"><div class="ep-fraud-lbl">⚠ Fraud &amp; dispute note</div><div class="ep-fraud-text">${esc(tx.fraud)}</div></div>` : ''}
+          <div class="ep-agent">
+            <div class="ep-agent-lbl">Agent tip</div>
+            <div class="ep-agent-q">"${esc(tx.agentQ)}"</div>
+            <div class="ep-agent-a">${esc(tx.agentA)}</div>
+          </div>
+        </div>
+      </div>` : '';
+
+    return `
+      <div class="entry${isOpen?' open':''}" id="entry-${tx.id}" onclick="toggle('${tx.id}')">
+        <div class="entry-row">
+          <div class="entry-dot" style="background:${tx.color}"></div>
+          <div class="entry-desc-wrap">
+            <div class="entry-desc">${highlight(tx.descs[0], q)}</div>
+            <div class="entry-brief">${highlight(tx.brief, q)}</div>
+          </div>
+          <div class="entry-right">
+            <span class="timing-chip ${tm.cls}">${tm.label}</span>
+            <span class="expand-icon">›</span>
+          </div>
+        </div>
+        ${panel}
+      </div>`;
+  }
+
+  // ── CATEGORISED VIEW (no search query) ─────────────────────────────────
+  let body = '';
+  if (!q) {
+    const countLine = `<div class="result-count">${TX.length} transaction types — tap any row to expand</div>`;
+    const sections = CAT_ORDER.map(catId => {
+      const cat = CATS[catId];
+      const types = TX.filter(t => t.cat === catId);
+      if (!types.length) return '';
+      return `
+        <div class="cat-section">
+          <div class="cat-header" style="background:${cat.color}0d">
+            <span class="cat-label" style="color:${cat.color}">${cat.label}</span>
+            <span class="cat-count">${types.length} type${types.length!==1?'s':''}</span>
+          </div>
+          ${types.map(tx => rowHtml(tx)).join('')}
+        </div>`;
+    }).join('');
+    body = countLine + sections;
+
+  // ── FILTERED FLAT VIEW (active search query) ────────────────────────────
+  } else {
+    if (!filtered.length) {
+      body = `<div class="no-results">No match for "<strong>${esc(query)}</strong>" — try a shorter keyword like "OSKO", "direct debit", or "ATM".</div>`;
+    } else {
+      body = `<div class="result-count">${filtered.length} of ${TX.length} types match "${esc(query)}"</div>`
+           + filtered.map(tx => rowHtml(tx)).join('');
+    }
+  }
+
+  document.getElementById('app').innerHTML = `
+    
+    <div class="shell">
+      <div class="search-wrap">
+        <div class="search-row">
+          <span class="search-icon">🔍</span>
+          <input id="srch" class="search-input" type="text"
+            placeholder='Type any description — e.g. "OSKO" or "direct debit" or "overseas"…'
+            value="${esc(query)}" oninput="doSearch(this.value)"
+            autocomplete="off" spellcheck="false">
+          <span class="search-clear${query?' show':''}" onclick="clearSearch()">✕ Clear</span>
+        </div>
+      </div>
+      ${body}
+    </div>`;
+
+  // Re-focus search
+  const el = document.getElementById('srch');
+  if(el){ el.focus(); el.setSelectionRange(query.length, query.length); }
+}
+
+function toggle(id){
+  openId = (openId === id) ? null : id;
+  render();
+  if(openId){
+    setTimeout(()=>{
+      const el = document.getElementById('entry-'+id);
+      if(el) el.scrollIntoView({behavior:'smooth',block:'nearest'});
+    }, 60);
+  }
+}
+
+function doSearch(v){ query = v; openId = null; render(); }
+function clearSearch(){ query = ''; openId = null; render(); }
+
+function toggleMobileMenu(){
+  const sidebar = document.querySelector('.sidebar');
+  const btn = document.querySelector('.mobile-menu-btn');
+  const isOpen = sidebar.classList.toggle('menu-open');
+  if(btn) btn.setAttribute('aria-expanded', String(isOpen));
+}
+render();
+</script>
+</body>
+</html>

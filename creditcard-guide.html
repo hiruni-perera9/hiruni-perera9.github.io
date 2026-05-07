@@ -9,6 +9,46 @@
 <link rel="stylesheet" href="style-ccguide.css">
 </head>
 <body>
+
+<div class="sidebar">
+  <!-- Sidebar Header -->
+  <div class="header-brand">
+    <!-- Brand Logo -->
+     <div class="brand-row">
+      <div class="logo-mark"><span>F</span></div>
+      <div>
+        <div class="page-org">Foundever</div>
+        <div class="page-sub">Call Centre Agent Guide</div>
+      </div>
+     </div>
+    <!-- Mobile Menu Button -->
+    <button class="mobile-menu-btn" onclick="toggleMobileMenu()" aria-expanded="false" aria-controls="sidebarLinks">
+      Menu <span class="menu-chevron">⌄</span>
+    </button>
+  </div>
+  <!-- Sidebar Links -->
+  <nav class="sidebar-links">
+    <a class="hub-link" href="index.html">
+      ID Guide
+    </a>
+    <a class="hub-link" href="training-hub.html">
+      Training Hub
+    </a>
+
+    <a class="hub-link" href="creditcard-guide.html">
+      Credit Card Guide
+    </a>
+
+    <a class="hub-link" href="terms-conditions.html">
+      CC Terms & Conditions
+    </a>
+
+    <a class="hub-link" href="transactions-guide.html">
+      Transactions Guide
+    </a>
+  </nav>
+</div>
+
 <div id="app"></div>
 <script>
 const TOPICS = [
@@ -443,13 +483,7 @@ function renderPartpay(){return `
 function render(){
   const t = S.topicId ? TOPICS.find(x=>x.id===S.topicId) : null;
   document.getElementById('app').innerHTML = `
-    <div class="phdr">
-      <div class="brand-row">
-        <div class="logomark">F</div>
-        <div><div class="brand-name">Foundever</div><div class="brand-sub">Credit Card Statement Guide</div></div>
-      </div>
-      <a class="back-link" href="creditcardstnc.html">← T&C Guide</a>
-    </div>
+   
     <div class="shell">
       ${S.screen === 'home' ? renderHome() : renderTopic(t)}
     </div>`;
@@ -978,6 +1012,12 @@ function renderTopic(t){
 function goHome(){ S.screen='home'; S.topicId=null; render(); window.scrollTo(0,0); }
 function goTopic(id){ S.topicId=id; S.screen='topic'; render(); window.scrollTo(0,0); }
 
+function toggleMobileMenu(){
+  const sidebar = document.querySelector('.sidebar');
+  const btn = document.querySelector('.mobile-menu-btn');
+  const isOpen = sidebar.classList.toggle('menu-open');
+  if(btn) btn.setAttribute('aria-expanded', String(isOpen));
+}
 render();
 </script>
 </body>
